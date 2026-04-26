@@ -18,6 +18,8 @@ export function Chrome() {
           <span className={`crumb ${step === "guide" ? "now" : "muted"}`}>Guide</span>
           <span className="muted">/</span>
           <span className={`crumb ${["interview", "spine", "drafting", "render"].includes(step) ? "now" : "muted"}`}>Draft</span>
+          <span className="muted">/</span>
+          <span className={`crumb ${step === "reel" ? "now" : "muted"}`}>Reel</span>
         </div>
       </div>
       
