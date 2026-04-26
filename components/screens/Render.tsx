@@ -1,34 +1,95 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BylineMeter } from "@/components/BylineMeter";
 import { SCRIPT } from "@/lib/demo";
 import { actions, useAppStore } from "@/lib/store";
+import type { ProvenanceLine } from "@/lib/types/session";
 
-interface HoveredLine {
-  text: string;
-  src: string;
-  q: string;
-  a: string;
+interface ProvenanceResponse {
+  provenance: ProvenanceLine[];
+  byline_pct: number;
+}
+
+interface RenderLine {
+  line: string;
+  src_id: string;
+  question: string | null;
+  answer: string | null;
+  match: "exact" | "fuzzy" | "none";
 }
 
 export function Render() {
-  const [, dispatch] = useAppStore();
-  const [hovered, setHovered] = useState<HoveredLine | null>(null);
+  const [state, dispatch] = useAppStore();
+  const { artifact_text, turns } = state;
+  const [hovered, setHovered] = useState<RenderLine | null>(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [real, setReal] = useState<ProvenanceResponse | null>(null);
 
   useEffect(() => {
     dispatch(actions.setEmotion("hopeful"));
   }, [dispatch]);
 
-  // Final lines: the cliché was cut during drafting.
-  const finalLines = SCRIPT.draft.filter((d) => d.verified);
+  // Fetch real provenance when we have a drafted artifact + turns.
+  useEffect(() => {
+    if (!artifact_text.trim() || turns.length === 0) {
+      setReal(null);
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/provenance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artifact: artifact_text,
+        turns: turns.map((t) => ({ id: t.id, role: t.role, text: t.text })),
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: ProvenanceResponse | null) => {
+        if (!cancelled && data) setReal(data);
+      })
+      .catch(() => {
+        // swallow — falls through to the SCRIPT-driven demo trace.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [artifact_text, turns]);
 
-  // Map "q3" -> SCRIPT.interview[2].
-  const lineToQA = (src: string | null) => {
-    if (!src) return null;
-    const idx = parseInt(src.replace(/^q/, ""), 10) - 1;
-    return SCRIPT.interview[idx] ?? null;
-  };
+  const useReal = real !== null && artifact_text.trim().length > 0;
+
+  const finalLines: RenderLine[] = useReal
+    ? real!.provenance
+        .filter((p) => p.line.trim().length > 0)
+        .map((p) => {
+          const turn = turns.find((t) => t.id === p.source_turn_id);
+          const turnIdx = turn ? turns.indexOf(turn) : -1;
+          const guideTurn = turnIdx > 0 ? turns[turnIdx - 1] : null;
+          return {
+            line: p.line.trim(),
+            src_id: p.source_turn_id,
+            question:
+              guideTurn?.role === "guide" ? guideTurn.text : null,
+            answer: turn?.text ?? p.source_text,
+            match: p.match,
+          };
+        })
+    : SCRIPT.draft
+        .filter((d) => d.verified)
+        .map((d) => {
+          const idx = d.src ? parseInt(d.src.replace(/^q/, ""), 10) - 1 : -1;
+          const qa = idx >= 0 ? SCRIPT.interview[idx] : null;
+          return {
+            line: d.text,
+            src_id: d.src ?? "",
+            question: qa?.q ?? null,
+            answer: qa?.a ?? null,
+            match: "exact" as const,
+          };
+        });
+
+  const bylinePct = useReal ? real!.byline_pct : 100;
 
   return (
     <div
@@ -38,13 +99,17 @@ export function Render() {
       <div className="corner-stamp">
         <div className="postmark">
           <div className="pm-top">verified · yours</div>
-          <div className="pm-mid">100%</div>
-          <div className="pm-bot">mean it · 2025</div>
+          <div className="pm-mid">{bylinePct}%</div>
+          <div className="pm-bot">mean it · 2026</div>
         </div>
       </div>
 
       <div style={{ textAlign: "center", marginBottom: 36 }}>
-        <div className="eyebrow">for tomas · read aloud, saturday</div>
+        <div className="eyebrow">
+          {useReal
+            ? "your artifact · read it aloud"
+            : "for tomas · read aloud, saturday"}
+        </div>
         <div className="ornament" style={{ marginTop: 12 }}>
           <svg
             width={120}
@@ -73,29 +138,38 @@ export function Render() {
         }}
       >
         {finalLines.map((ln, i) => {
-          const qa = lineToQA(ln.src);
+          const interactive =
+            ln.match !== "none" && (ln.question !== null || ln.answer !== null);
           return (
             <div
               key={i}
               className="trace-line"
+              tabIndex={interactive ? 0 : -1}
               style={{
                 marginBottom: i === finalLines.length - 2 ? 18 : 4,
+                cursor: interactive ? "help" : "default",
+                opacity: ln.match === "none" ? 0.6 : 1,
               }}
               onMouseEnter={(e) => {
-                if (qa && ln.src) {
-                  setHovered({
-                    text: ln.text,
-                    src: ln.src,
-                    q: qa.q,
-                    a: qa.a,
-                  });
+                if (interactive) {
+                  setHovered(ln);
                   setPos({ x: e.clientX, y: e.clientY });
                 }
               }}
               onMouseMove={(e) => setPos({ x: e.clientX, y: e.clientY })}
               onMouseLeave={() => setHovered(null)}
+              onFocus={(e) => {
+                if (interactive) {
+                  setHovered(ln);
+                  const rect = (
+                    e.target as HTMLElement
+                  ).getBoundingClientRect();
+                  setPos({ x: rect.right, y: rect.top + rect.height / 2 });
+                }
+              }}
+              onBlur={() => setHovered(null)}
             >
-              {ln.text}
+              {ln.line}
             </div>
           );
         })}
@@ -110,8 +184,9 @@ export function Render() {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          gap: 14,
+          gap: 18,
           marginBottom: 8,
+          flexWrap: "wrap",
         }}
       >
         <div className="seal" style={{ width: 44, height: 44 }}>
@@ -119,12 +194,7 @@ export function Render() {
             M
           </span>
         </div>
-        <div
-          className="serif-italic"
-          style={{ fontSize: 22, color: "var(--t-ink)" }}
-        >
-          One hundred percent your words.
-        </div>
+        <BylineMeter pct={bylinePct} lines={finalLines.length} />
       </div>
       <div
         className="muted"
@@ -176,6 +246,7 @@ export function Render() {
       {hovered && (
         <div
           className="trace-pop"
+          role="tooltip"
           style={{
             left: Math.min(
               pos.x + 16,
@@ -185,44 +256,56 @@ export function Render() {
           }}
         >
           <div className="eyebrow" style={{ color: "var(--t-accent)" }}>
-            trace · {hovered.src}
+            trace · {hovered.match}
           </div>
-          <div
-            className="muted"
-            style={{
-              fontFamily: "var(--t-mono)",
-              fontSize: 9,
-              marginTop: 8,
-            }}
-          >
-            question
-          </div>
-          <div
-            className="serif-italic"
-            style={{ fontSize: 14, marginTop: 2, color: "var(--t-ink)" }}
-          >
-            &ldquo;{hovered.q}&rdquo;
-          </div>
-          <div
-            className="muted"
-            style={{
-              fontFamily: "var(--t-mono)",
-              fontSize: 9,
-              marginTop: 10,
-            }}
-          >
-            your verbatim answer
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              marginTop: 4,
-              color: "var(--t-ink-soft)",
-              fontStyle: "italic",
-            }}
-          >
-            &ldquo;{hovered.a}&rdquo;
-          </div>
+          {hovered.question && (
+            <>
+              <div
+                className="muted"
+                style={{
+                  fontFamily: "var(--t-mono)",
+                  fontSize: 9,
+                  marginTop: 8,
+                }}
+              >
+                question
+              </div>
+              <div
+                className="serif-italic"
+                style={{
+                  fontSize: 14,
+                  marginTop: 2,
+                  color: "var(--t-ink)",
+                }}
+              >
+                &ldquo;{hovered.question}&rdquo;
+              </div>
+            </>
+          )}
+          {hovered.answer && (
+            <>
+              <div
+                className="muted"
+                style={{
+                  fontFamily: "var(--t-mono)",
+                  fontSize: 9,
+                  marginTop: 10,
+                }}
+              >
+                your verbatim answer
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  marginTop: 4,
+                  color: "var(--t-ink-soft)",
+                  fontStyle: "italic",
+                }}
+              >
+                &ldquo;{hovered.answer}&rdquo;
+              </div>
+            </>
+          )}
           <div
             style={{
               marginTop: 12,
@@ -235,7 +318,11 @@ export function Render() {
               textTransform: "uppercase",
             }}
           >
-            ✓ exact substring · verified yours
+            {hovered.match === "exact"
+              ? "✓ exact substring · verified yours"
+              : hovered.match === "fuzzy"
+                ? "◐ close paraphrase · within 2 edits"
+                : "⚠ no source match"}
           </div>
         </div>
       )}
