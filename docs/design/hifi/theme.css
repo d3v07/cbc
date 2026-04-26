@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* ─────────────────────────────────────────────────────────────
    Mean It — letterpress / stationery identity.
    Five themes (cute → warm → quiet → noir → gothic).
@@ -31,11 +27,11 @@
   --t-verified: #4a6b3a;
   --t-tape: rgba(212, 184, 130, 0.65);
 
-  --t-display: var(--font-playfair-display), 'Iowan Old Style', Georgia, serif;
-  --t-body: var(--font-eb-garamond), 'Iowan Old Style', Georgia, serif;
-  --t-mono: var(--font-jetbrains-mono), 'IBM Plex Mono', ui-monospace, monospace;
-  --t-hand: var(--font-caveat), cursive;
-  --t-stamp: var(--font-special-elite), 'Courier Prime', 'Courier New', monospace;
+  --t-display: 'Playfair Display', 'Iowan Old Style', Georgia, serif;
+  --t-body: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  --t-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --t-hand: 'Caveat', cursive;
+  --t-stamp: 'Special Elite', 'Courier Prime', 'Courier New', monospace;
   --t-display-style: italic;
   --t-display-weight: 600;
 
@@ -66,8 +62,8 @@
   --t-highlight: #ffd66b;
   --t-verified: #6e8a3e;
   --t-tape: rgba(255, 200, 180, 0.7);
-  --t-display: var(--font-fraunces), var(--font-playfair-display), Georgia, serif;
-  --t-body: var(--font-eb-garamond), Georgia, serif;
+  --t-display: 'Fraunces', 'Playfair Display', Georgia, serif;
+  --t-body: 'EB Garamond', Georgia, serif;
   --t-display-weight: 700;
   --t-display-style: normal;
   --t-radius: 6px;
@@ -144,7 +140,7 @@
   --t-highlight: rgba(184, 155, 224, 0.32);
   --t-verified: #9eb56c;
   --t-tape: rgba(120, 100, 150, 0.45);
-  --t-display: var(--font-playfair-display), Georgia, serif;
+  --t-display: 'Playfair Display', Georgia, serif;
   --t-display-weight: 500;
   --t-display-style: italic;
   --t-radius: 1px;
