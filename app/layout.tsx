@@ -12,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className="theme-edge">
+      <body className="min-h-screen transition-theme">{children}</body>
     </html>
   );
 }

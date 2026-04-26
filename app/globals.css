@@ -1,3 +1,93 @@
+@import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Space+Grotesk:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* Warm amber defaults — overridden at runtime by applyTheme() */
+  --bg: #faf8f4;
+  --surface: #f2ede4;
+  --border: #d3d1c7;
+  --text-primary: #2c2420;
+  --text-muted: #7a6e66;
+  --accent: #ef9f27;
+  --accent-dark: #ba7517;
+  --accent-soft: #fde8b8;
+  --radius-card: 16px;
+  --radius-btn: 9999px;
+  --font-serif: 'Lora', Georgia, serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--text-primary);
+    font-family: "DM Sans", system-ui, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  /* Font swap for gothic/edge end */
+  .theme-edge body,
+  .theme-edge {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+  }
+
+  .font-serif {
+    font-family: "Lora", Georgia, serif;
+  }
+
+  .theme-edge .font-serif {
+    font-family: "Playfair Display", Georgia, serif;
+  }
+}
+
+@layer utilities {
+  .transition-theme {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+}
+
+/* Floating animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes float-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(5px, -10px) rotate(5deg); }
+  50% { transform: translate(-5px, -20px) rotate(-3deg); }
+  75% { transform: translate(3px, -10px) rotate(2deg); }
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.animate-sparkle {
+  animation: sparkle-pulse 3s ease-in-out infinite;
+}
