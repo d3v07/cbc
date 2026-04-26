@@ -7,7 +7,10 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
-    environmentMatchGlobs: [["tests/components/**", "happy-dom"]],
+    environmentMatchGlobs: [
+      ["tests/components/**", "happy-dom"],
+      ["tests/lib/video/**", "happy-dom"],
+    ],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, ".") },
