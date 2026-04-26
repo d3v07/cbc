@@ -1,0 +1,231 @@
+{
+  "features": [
+    {
+      "id": "feat-s1-audio",
+      "title": "Project skeleton + Anthropic Files photo upload",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 1,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 1,
+      "branch": "feat/sprint-1-skeleton-photos",
+      "acceptance_criteria": [
+        "Next.js 15 App Router boots on :3000",
+        "TS strict + Tailwind configured",
+        "POST /api/photos/upload forwards to Anthropic Files API and returns file_id",
+        "ANTHROPIC_API_KEY read from .env.local"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "feat-s1-frontend",
+      "title": "Picker UI: moment + guide cards + Tailwind base",
+      "owner": "PruthviVKadam",
+      "area": "frontend",
+      "sprint": 1,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 2,
+      "branch": "feat/sprint-1-picker-ui",
+      "acceptance_criteria": [
+        "Moment picker (recipient, occasion, form) renders",
+        "GuidePicker renders typed Guide[]",
+        "Non-default font pair + brand-derived palette",
+        "Session persists to localStorage"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "feat-s1-persona",
+      "title": "guide.md schema + loader + 3 built-in guides",
+      "owner": "Frex22",
+      "area": "persona",
+      "sprint": 1,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 3,
+      "branch": "feat/sprint-1-guide-schema",
+      "acceptance_criteria": [
+        "Zod schema matches DESIGN.md §3",
+        "Loader validates and returns Guide[]",
+        "Re-injects immutable forbidden + core audit_flags on every load",
+        "Three built-in guide files finalized"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "feat-s2-audio",
+      "title": "Photo Reader (Sonnet vision) + voice recorder UI",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 2,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 4,
+      "branch": "feat/sprint-2-photo-reader-voice",
+      "acceptance_criteria": [
+        "POST /api/photos/describe returns subject/setting/mood",
+        "Sonnet 4.6 vision with cached system prompt",
+        "Descriptions written to Session.photos[]",
+        "VoiceRecorder with waveform + retake; blob URL only"
+      ],
+      "dependencies": ["feat-s1-audio"]
+    },
+    {
+      "id": "feat-s2-frontend",
+      "title": "Streaming chat shell (SSE)",
+      "owner": "PruthviVKadam",
+      "area": "frontend",
+      "sprint": 2,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 5,
+      "branch": "feat/sprint-2-chat-shell",
+      "acceptance_criteria": [
+        "InterviewChat streams SSE deltas",
+        "First-token under 1s; no spinners",
+        "Turn[] persisted to Session"
+      ],
+      "dependencies": ["feat-s1-frontend", "feat-s1-persona"]
+    },
+    {
+      "id": "feat-s2-persona",
+      "title": "Interview route + system-prompt assembly + spine extractor",
+      "owner": "Frex22",
+      "area": "persona",
+      "sprint": 2,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 6,
+      "branch": "feat/sprint-2-interview-spine",
+      "acceptance_criteria": [
+        "POST /api/interview/turn streams Sonnet 4.6",
+        "System prompt assembled from guide.md, ephemeral cache",
+        "POST /api/spine validates substrings and retries once on miss"
+      ],
+      "dependencies": ["feat-s1-persona"]
+    },
+    {
+      "id": "feat-s3-audio",
+      "title": "Voice transcript (Whisper) + TTS fallback",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 3,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 7,
+      "branch": "feat/sprint-3-transcribe-tts",
+      "acceptance_criteria": [
+        "POST /api/transcribe returns line-level timestamps",
+        "POST /api/tts returns audio blob tagged synthesized",
+        "OPENAI_API_KEY validated at startup"
+      ],
+      "dependencies": ["feat-s2-audio"]
+    },
+    {
+      "id": "feat-s3-frontend",
+      "title": "Drafting split-pane + page artifact + byline meter",
+      "owner": "PruthviVKadam",
+      "area": "frontend",
+      "sprint": 3,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 8,
+      "branch": "feat/sprint-3-drafting-render",
+      "acceptance_criteria": [
+        "Drafting split-pane with streaming critique",
+        "PageArtifact with hover-trace popovers",
+        "BylineMeter color-coded + non-color-only",
+        "Keyboard-reachable popovers"
+      ],
+      "dependencies": ["feat-s2-frontend"]
+    },
+    {
+      "id": "feat-s3-persona",
+      "title": "Provenance matcher + audit layer (Haiku)",
+      "owner": "Frex22",
+      "area": "persona",
+      "sprint": 3,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 9,
+      "branch": "feat/sprint-3-provenance-audit",
+      "acceptance_criteria": [
+        "Deterministic exact + edit-distance matcher",
+        "POST /api/audit blocks tripped messages",
+        "Audit log written to Session.audit[]"
+      ],
+      "dependencies": ["feat-s2-persona"]
+    },
+    {
+      "id": "feat-s4-audio",
+      "title": "Curator + canvas reel renderer + ffmpeg.wasm + download",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 4,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 10,
+      "branch": "feat/sprint-4-reel-pipeline",
+      "acceptance_criteria": [
+        "POST /api/curator returns Storyboard JSON",
+        "Canvas 1080x1920 @ 30fps with Ken Burns + caption fades",
+        "WebM captured, transcoded to MP4 client-side",
+        "Download via <a download>"
+      ],
+      "dependencies": ["feat-s3-audio", "feat-s3-frontend"]
+    },
+    {
+      "id": "feat-s4-frontend",
+      "title": "Reel viewer integration + final polish",
+      "owner": "PruthviVKadam",
+      "area": "frontend",
+      "sprint": 4,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 11,
+      "branch": "feat/sprint-4-reel-ui-polish",
+      "acceptance_criteria": [
+        "Render-reel button wired",
+        "Specific empty/error states",
+        "Lighthouse a11y >= 95 on artifact view",
+        "Copy pass — no banned defaults"
+      ],
+      "dependencies": ["feat-s4-audio"]
+    },
+    {
+      "id": "feat-s4-persona",
+      "title": "Guide-create flow (Opus) + share-link encode/decode",
+      "owner": "Frex22",
+      "area": "persona",
+      "sprint": 4,
+      "status": "failing",
+      "priority": "P0",
+      "issue": 12,
+      "branch": "feat/sprint-4-guide-create-share",
+      "acceptance_criteria": [
+        "Opus 4.7 multi-turn generator emits guide.md",
+        "Immutables always injected; guardrail-strip refused",
+        "Share-link round-trips browser-to-browser, payload < 2KB"
+      ],
+      "dependencies": ["feat-s1-persona"]
+    }
+  ],
+  "metadata": {
+    "project_name": "Mean It (cbc)",
+    "branch": "persona-core-dev",
+    "design_doc": "DESIGN.md",
+    "tech_stack_doc": "docs/techstack.md",
+    "sprints": 4,
+    "total_features": 12,
+    "owners": {
+      "d3v07": "audio, video, images",
+      "PruthviVKadam": "frontend, design",
+      "Frex22": "persona, guides, audit, share"
+    },
+    "sprint_gate_rule": "All three tracks in a sprint must finish before any track starts the next sprint.",
+    "created_at": "2026-04-26T14:00:00Z",
+    "created_by": "d3v07"
+  }
+}
