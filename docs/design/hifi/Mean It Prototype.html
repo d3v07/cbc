@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Mean It — Hi-Fi Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=JetBrains+Mono:wght@400;500;600&family=Special+Elite&family=Caveat:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="theme.css"/>
+<style>
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="mascots.jsx"></script>
+<script type="text/babel" src="screens-1.jsx"></script>
+<script type="text/babel" src="screens-2.jsx"></script>
+<script type="text/babel" src="screens-3.jsx"></script>
+<script type="text/babel" src="modals.jsx"></script>
+<script type="text/babel" src="reel.jsx"></script>
+
+<script type="text/babel">
+const THEMES = [
+  { id: 'cute',   label: 'cute',   sub: 'kid birthdays' },
+  { id: 'warm',   label: 'warm',   sub: 'family · default' },
+  { id: 'quiet',  label: 'quiet',  sub: 'apologies · letters' },
+  { id: 'noir',   label: 'noir',   sub: 'love · longing' },
+  { id: 'gothic', label: 'gothic', sub: 'eulogies · weight' },
+];
+
+const STEPS = [
+  { id: 'moment',    label: '01 · moment'    },
+  { id: 'guide',     label: '02 · guide'     },
+  { id: 'interview', label: '03 · interview' },
+  { id: 'spine',     label: '04 · spine'     },
+  { id: 'drafting',  label: '05 · drafting'  },
+  { id: 'render',    label: '06 · render'    },
+];
+
+function ThemeSlider({ theme, setTheme }) {
+  return (
+    <div className="theme-slider" data-screen-label="theme-slider">
+      <span className="label">theme</span>
+      <div className="track">
+        {THEMES.map(t => (
+          <button key={t.id}
+            className={'pip ' + (theme === t.id ? 'on' : '')}
+            onClick={() => setTheme(t.id)}
+            title={t.label + ' · ' + t.sub}
+            style={{ background: 'none', border: 'none', padding: 0 }}>
+            <span/>
+          </button>
+        ))}
+      </div>
+      <span className="label" style={{ minWidth: 44, textAlign: 'right' }}>{theme}</span>
+    </div>
+  );
+}
+
+function App() {
+  const [theme, setTheme] = React.useState('quiet'); // eulogy default
+  const [step, setStep] = React.useState('moment');
+  const [emotion, setEmotion] = React.useState('listening');
+  const [modal, setModal] = React.useState(null); // 'download'|'save'|'share'|'startover'|'createguide'|'reel'|'imagecard'|null
+
+  const stepIdx = STEPS.findIndex(s => s.id === step);
+  const next = () => {
+    const i = STEPS.findIndex(s => s.id === step);
+    if (i < STEPS.length - 1) setStep(STEPS[i+1].id);
+    else setStep('moment');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // theme moods — when entering eulogy flow, suggest gothic; etc. (subtle)
+  // we don't auto-switch — user controls.
+
+  // byline visibility: subtle in chrome on later steps
+  const showByline = ['drafting', 'render'].includes(step);
+
+  return (
+    <div className={'app theme-' + theme} data-screen-label={'mean-it ' + step}>
+      <div className="grain"/>
+      <header className="chrome">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+          <span className="logo">Mean It<span className="logo-dot">.</span></span>
+          <div className="crumbs">
+            {STEPS.map((s, i) => (
+              <button key={s.id}
+                className={'crumb ' + (s.id === step ? 'now' : '')}
+                onClick={() => setStep(s.id)}
+                style={{
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 'inherit', letterSpacing: 'inherit',
+                  textTransform: 'inherit',
+                  color: s.id === step ? 'var(--t-ink)' : i < stepIdx ? 'var(--t-ink-soft)' : 'var(--t-ink-faint)',
+                  opacity: i <= stepIdx ? 1 : 0.5,
+                }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="right">
+          {showByline && (
+            <div className="byline">
+              <span className="byline-dot"/>
+              <span>{step === 'render' ? '100% yours' : 'verifying as you write…'}</span>
+            </div>
+          )}
+          <ThemeSlider theme={theme} setTheme={setTheme}/>
+        </div>
+      </header>
+
+      {step === 'moment'    && <PickMoment go={next}/>}
+      {step === 'guide'     && <GuidePicker go={next} openCreateGuide={() => setModal('createguide')}/>}
+      {step === 'interview' && <Interview go={next} setEmotion={setEmotion}/>}
+      {step === 'spine'     && <Spine go={next} setEmotion={setEmotion}/>}
+      {step === 'drafting'  && <Drafting go={next} setEmotion={setEmotion}/>}
+      {step === 'render'    && <Render
+        setEmotion={setEmotion}
+        openDownload={() => setModal('download')}
+        openSave={() => setModal('save')}
+        openShare={() => setModal('share')}
+        openStartOver={() => setModal('startover')}
+        openReel={() => setModal('reel')}
+      />}
+
+      {modal === 'createguide' && <CreateGuideDialog onClose={() => setModal(null)}/>}
+      {modal === 'download'    && <DownloadDialog    onClose={() => setModal(null)} openImageCard={() => setModal('imagecard')}/>}
+      {modal === 'save'        && <SaveDialog        onClose={() => setModal(null)}/>}
+      {modal === 'share'       && <ShareDialog       onClose={() => setModal(null)}/>}
+      {modal === 'startover'   && <StartOverDialog   onClose={() => setModal(null)} confirm={() => { setModal(null); setStep('moment'); }}/>}
+      {modal === 'imagecard'   && <ImageCardDialog   onClose={() => setModal(null)}/>}
+      {modal === 'reel'        && <ReelFlow          onClose={() => setModal(null)} theme={theme}/>}
+
+      <footer style={{
+        marginTop: 48, padding: '32px 0 28px',
+        textAlign: 'center', fontFamily: 'var(--t-mono)', fontSize: 9,
+        color: 'var(--t-ink-faint)', letterSpacing: '0.18em', textTransform: 'uppercase',
+      }}>
+        every word is yours · we can prove it
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
