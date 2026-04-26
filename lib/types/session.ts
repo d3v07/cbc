@@ -1,24 +1,16 @@
 import { z } from "zod";
+import { ThemeSchema, DEFAULT_THEME, type Theme } from "./theme";
+import { PhotoMetaSchema, type PhotoMeta } from "./media";
 
-// Theme — visual register the page artifact and reel renderer adopt.
-export const ThemeSchema = z.enum(["cute", "warm", "quiet", "noir", "gothic"]);
-export type Theme = z.infer<typeof ThemeSchema>;
+// Re-export the canonical Theme / PhotoMeta from their dedicated modules so
+// callers have one entry point (`@/lib/types/session`) without two sources
+// of truth. ThemeSchema / PhotoMetaSchema live next to their consumers in
+// `./theme` and `./media` respectively.
+export { ThemeSchema, DEFAULT_THEME, type Theme, PhotoMetaSchema, type PhotoMeta };
 
 // Form — the artifact form being authored. v1 scope per DESIGN.md §4.
 export const FormSchema = z.enum(["poem", "letter"]);
 export type Form = z.infer<typeof FormSchema>;
-
-// Populated by Photo Reader (#4); subject/setting/mood land after the
-// vision call returns.
-export const PhotoMetaSchema = z.object({
-  file_id: z.string().min(1),
-  mime: z.string().min(1),
-  size: z.number().int().nonnegative(),
-  subject: z.string().optional(),
-  setting: z.string().optional(),
-  mood: z.string().optional(),
-});
-export type PhotoMeta = z.infer<typeof PhotoMetaSchema>;
 
 // Appended whenever the audit layer (#9) inspects an assistant message.
 // `blocked` defaults to false so the audit can run in log-only mode.
