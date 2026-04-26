@@ -1,5 +1,29 @@
-import { describe, expect, it } from "vitest";
-import { POST } from "@/app/api/draft/critique/route";
+import { describe, expect, it, vi } from "vitest";
+
+// The route enters real-Sonnet mode whenever a key is present (BYO header
+// or env). Some of these tests send a BYO header to assert that the key
+// doesn't leak — without a mock here those would make real Anthropic
+// calls. Mock returns a benign empty-card response so the real-mode
+// branch completes cleanly without network IO.
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: vi.fn().mockImplementation(() => ({
+    messages: {
+      stream: vi.fn().mockReturnValue({
+        on() {
+          return this;
+        },
+        finalMessage: () =>
+          Promise.resolve({
+            content: [],
+            usage: { input_tokens: 0, output_tokens: 0 },
+          }),
+      }),
+      create: vi.fn(),
+    },
+  })),
+}));
+
+const { POST } = await import("@/app/api/draft/critique/route");
 
 function jsonRequest(body: unknown, headers: Record<string, string> = {}): Request {
   return new Request("http://localhost/api/draft/critique", {
