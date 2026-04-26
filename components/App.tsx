@@ -7,6 +7,7 @@ import { PickMoment } from "./screens/PickMoment";
 import { GuidePicker } from "./screens/GuidePicker";
 import { Interview } from "./screens/Interview";
 import { Spine } from "./screens/Spine";
+import { Drafting } from "./screens/Drafting";
 import { Render } from "./screens/Render";
 import { ReelViewer } from "./screens/ReelViewer";
 import { Download, type DownloadArtifact, type DownloadArtifacts } from "./modals/Download";
@@ -57,7 +58,7 @@ function AppContent({ guides }: { guides: Guide[] }) {
         {step === "guide" && <GuidePicker guides={guides} />}
         {step === "interview" && <Interview />}
         {step === "spine" && <Spine />}
-        {step === "drafting" && <div className="stage text-center">Drafting screen coming soon (Sprint 3).</div>}
+        {step === "drafting" && <Drafting />}
         {step === "render" && <Render />}
         {step === "reel" && <ReelViewer onMp4Ready={setMp4} />}
       </main>
