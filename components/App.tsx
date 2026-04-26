@@ -10,6 +10,7 @@ import { Spine } from "./screens/Spine";
 import { Drafting } from "./screens/Drafting";
 import { Render } from "./screens/Render";
 import { ReelViewer } from "./screens/ReelViewer";
+import CreateGuide from "./modals/CreateGuide";
 import { Download, type DownloadArtifact, type DownloadArtifacts } from "./modals/Download";
 import ImageCard from "./modals/ImageCard";
 import Save from "./modals/Save";
@@ -67,6 +68,7 @@ function AppContent({ guides }: { guides: Guide[] }) {
       <ShareTrace />
       <StartOver />
       <ImageCard />
+      <CreateGuide />
     </div>
   );
 }
