@@ -56,6 +56,10 @@ export interface AppState {
   // if absent.
   session_id: string;
   turns: Turn[];
+  // artifact_text is the user's draft prose (Drafting screen output ↔
+  // Render screen input). Empty string = not yet drafted; Render falls
+  // back to the demo SCRIPT in that case.
+  artifact_text: string;
 }
 
 export type Action =
@@ -67,6 +71,7 @@ export type Action =
   | { type: "patch_draft"; patch: Partial<DraftSession> }
   | { type: "set_session_id"; session_id: string }
   | { type: "append_turn"; turn: Turn }
+  | { type: "set_artifact_text"; text: string }
   | { type: "reset" };
 
 const STEPS: readonly Step[] = STEPS_TUPLE;
@@ -90,6 +95,7 @@ const PersistedSchema = z.object({
   draft: DraftSchema,
   session_id: z.string().default(""),
   turns: z.array(TurnSchema).default([]),
+  artifact_text: z.string().default(""),
 });
 
 export const INITIAL_STATE: AppState = {
@@ -105,6 +111,7 @@ export const INITIAL_STATE: AppState = {
   },
   session_id: "",
   turns: [],
+  artifact_text: "",
 };
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -128,6 +135,8 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, session_id: action.session_id };
     case "append_turn":
       return { ...state, turns: [...state.turns, action.turn] };
+    case "set_artifact_text":
+      return { ...state, artifact_text: action.text };
     case "reset":
       return INITIAL_STATE;
   }
@@ -183,5 +192,9 @@ export const actions = {
     session_id,
   }),
   appendTurn: (turn: Turn): Action => ({ type: "append_turn", turn }),
+  setArtifactText: (text: string): Action => ({
+    type: "set_artifact_text",
+    text,
+  }),
   reset: (): Action => ({ type: "reset" }),
 };

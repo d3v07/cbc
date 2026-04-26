@@ -82,6 +82,15 @@ describe("reducer", () => {
     expect(next.turns).toEqual(INITIAL_STATE.turns);
   });
 
+  it("set_artifact_text replaces the artifact_text", () => {
+    const next = reducer(
+      INITIAL_STATE,
+      actions.setArtifactText("Tomas kept a notebook."),
+    );
+    expect(next.artifact_text).toBe("Tomas kept a notebook.");
+    expect(INITIAL_STATE.artifact_text).toBe("");
+  });
+
   it("append_turn pushes turns immutably", () => {
     const turn1: Turn = {
       id: "g1",
