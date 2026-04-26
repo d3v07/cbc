@@ -1,12 +1,13 @@
 type Level = "debug" | "info" | "warn" | "error";
 
 function emit(level: Level, message: string, fields: Record<string, unknown> = {}) {
+  // Spread caller fields first; reserved keys below cannot be overwritten.
   const entry = {
+    ...fields,
     level,
     message,
     service: "cbc",
     timestamp: new Date().toISOString(),
-    ...fields,
   };
   // Single allowed console call — structured JSON output.
   // eslint-disable-next-line no-console

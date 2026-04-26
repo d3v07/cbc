@@ -5,8 +5,10 @@ import { log } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BYTES = 20 * 1024 * 1024; // 20MB — Anthropic Files API hard cap is 32MB; keep margin
-const ACCEPTED_PREFIXES = ["image/"];
+const MAX_BYTES = 20 * 1024 * 1024; // 20MB — vendor Files API hard cap is 32MB; keep margin
+// Explicit allowlist — excludes image/svg+xml (XSS risk if ever rendered back) and
+// formats the vision model doesn't support.
+const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 export async function POST(req: NextRequest) {
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
@@ -32,9 +34,13 @@ export async function POST(req: NextRequest) {
       { status: 413 },
     );
   }
-  if (!ACCEPTED_PREFIXES.some((p) => file.type.startsWith(p))) {
+  if (!ACCEPTED_TYPES.has(file.type)) {
     return NextResponse.json(
-      { error: "unsupported content-type", type: file.type },
+      {
+        error: "unsupported content-type",
+        type: file.type,
+        accepted: [...ACCEPTED_TYPES],
+      },
       { status: 415 },
     );
   }

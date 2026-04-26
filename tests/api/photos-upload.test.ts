@@ -42,6 +42,19 @@ describe("POST /api/photos/upload", () => {
     expect(res.status).toBe(415);
   });
 
+  it("rejects image/svg+xml with 415 (not an allowed photo MIME)", async () => {
+    const fd = new FormData();
+    fd.set(
+      "file",
+      new File(["<svg xmlns='http://www.w3.org/2000/svg'/>"], "x.svg", {
+        type: "image/svg+xml",
+      }),
+    );
+    const res = await POST(makeRequest(fd) as never);
+    expect(res.status).toBe(415);
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+
   it("forwards a JPEG to Anthropic Files API and returns file_id", async () => {
     uploadMock.mockResolvedValueOnce({ id: "file_abc123" });
     const fd = new FormData();
