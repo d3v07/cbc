@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { createContext, createElement, useContext, useEffect, useReducer, type ReactNode } from "react";
 import { z } from "zod";
 import { EMOTIONS, type Emotion } from "@/components/mascots";
 import { FormSchema, ThemeSchema, type Form, type Theme } from "@/lib/types/session";
@@ -12,6 +12,7 @@ export const STEPS_TUPLE = [
   "spine",
   "drafting",
   "render",
+  "reel",
 ] as const;
 const StepSchema = z.enum(STEPS_TUPLE);
 export type Step = z.infer<typeof StepSchema>;
@@ -111,6 +112,8 @@ export function reducer(state: AppState, action: Action): AppState {
 }
 
 const STORAGE_KEY = "mean_it_app_state_v1";
+type StoreTuple = readonly [AppState, React.Dispatch<Action>];
+const AppStoreContext = createContext<StoreTuple | null>(null);
 
 function loadInitial(): AppState {
   if (typeof window === "undefined") return INITIAL_STATE;
@@ -131,7 +134,7 @@ function loadInitial(): AppState {
   }
 }
 
-export function useAppStore() {
+function useAppStoreReducer() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE, loadInitial);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -142,6 +145,19 @@ export function useAppStore() {
     }
   }, [state]);
   return [state, dispatch] as const;
+}
+
+export function AppStoreProvider({ children }: { children: ReactNode }) {
+  const store = useAppStoreReducer();
+  return createElement(AppStoreContext.Provider, { value: store }, children);
+}
+
+export function useAppStore() {
+  const store = useContext(AppStoreContext);
+  if (!store) {
+    throw new Error("useAppStore must be used within AppStoreProvider");
+  }
+  return store;
 }
 
 // Action constructors for ergonomic dispatch at call sites.

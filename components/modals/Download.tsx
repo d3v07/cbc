@@ -17,15 +17,28 @@ export interface DownloadOpts {
   includeByline: boolean;
 }
 
-export interface DownloadProps {
-  availableFormats?: AvailableFormats;
+export interface DownloadArtifact {
+  url: string;
+  filename: string;
 }
 
-// Stub — wired when ReelRenderer (feat-27-1x) ships and emits real artifact
-// blobs. Until then this is a no-op so the modal can be exercised without
-// pulling in ffmpeg.wasm.
-function downloadArtifact(_format: DownloadFormat, _opts: DownloadOpts): void {
-  // TODO(feat-27-render): hand off to ReelRenderer artifact pipeline.
+export type DownloadArtifacts = Partial<Record<DownloadFormat, DownloadArtifact>>;
+
+export interface DownloadProps {
+  availableFormats?: AvailableFormats;
+  artifacts?: DownloadArtifacts;
+  onDownload?: (format: DownloadFormat, opts: DownloadOpts) => void;
+}
+
+function triggerDownload(artifact: DownloadArtifact): void {
+  if (typeof document === "undefined") return;
+  const link = document.createElement("a");
+  link.href = artifact.url;
+  link.download = artifact.filename;
+  link.rel = "noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 interface FormatOption {
@@ -40,7 +53,7 @@ const FORMAT_OPTIONS: readonly FormatOption[] = [
   { id: "poster", label: "Poster image", sub: "single still · png" },
 ] as const;
 
-export function Download({ availableFormats }: DownloadProps) {
+export function Download({ availableFormats, artifacts, onDownload: onDownloadArtifact }: DownloadProps) {
   const [state, dispatch] = useAppStore();
   const [format, setFormat] = useState<DownloadFormat | null>(null);
   const [includeCaptions, setIncludeCaptions] = useState<boolean>(false);
@@ -49,11 +62,16 @@ export function Download({ availableFormats }: DownloadProps) {
   const open = state.modal === "download";
   const close = () => dispatch(actions.setModal(null));
 
-  const visible = FORMAT_OPTIONS.filter((opt) => availableFormats?.[opt.id] === true);
+  const visible = FORMAT_OPTIONS.filter((opt) =>
+    availableFormats ? availableFormats[opt.id] === true : Boolean(artifacts?.[opt.id]),
+  );
 
-  const onDownload = () => {
+  const handleDownload = () => {
     if (!format) return;
-    downloadArtifact(format, { includeCaptions, includeByline });
+    const opts = { includeCaptions, includeByline };
+    onDownloadArtifact?.(format, opts);
+    const artifact = artifacts?.[format];
+    if (artifact) triggerDownload(artifact);
     close();
   };
 
@@ -178,7 +196,7 @@ export function Download({ availableFormats }: DownloadProps) {
         </button>
         <button
           type="button"
-          onClick={onDownload}
+          onClick={handleDownload}
           disabled={!format}
           className="btn primary"
         >

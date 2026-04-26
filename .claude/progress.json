@@ -3,19 +3,34 @@
     "sessions_completed": 0,
     "current_session_id": null,
     "current_session_start": null,
-    "last_checkpoint": null,
-    "last_checkpoint_feature": null,
+    "last_checkpoint": "issue-27-implementation-complete",
+    "last_checkpoint_feature": "feat-27-12-modal-image-card",
     "cycle": "issue-27"
   },
-  "completed_features": [],
+  "completed_features": [
+    "feat-27-01-rebase-pr18",
+    "feat-27-02-photo-reader-cache",
+    "feat-27-03-audio-startup-validation",
+    "feat-27-04-curator-live",
+    "feat-27-05-reel-renderer",
+    "feat-27-06-reel-viewer-screen",
+    "feat-27-07-modal-shared",
+    "feat-27-08-modal-startover",
+    "feat-27-09-modal-download",
+    "feat-27-10-modal-share-trace",
+    "feat-27-11-modal-save",
+    "feat-27-12-modal-image-card"
+  ],
   "in_progress": null,
-  "current_group": "s2",
+  "current_group": null,
   "context_stats": {
     "turns_this_session": 0,
     "turns_since_checkpoint": 0,
     "next_checkpoint_at": 50,
     "approx_tokens_used": 0
   },
-  "blockers": [],
-  "notes": "Reinitialized 2026-04-26 for issue #27. 12 features grouped s2/s3/s4/modals. Sprint gate is per-PR — merge each before starting the next."
+  "blockers": [
+    "Live Anthropic/OpenAI smoke not run in this shell; API keys are not exported and no real media/file IDs were provided."
+  ],
+  "notes": "Issue #27 implementation pass completed on feat/27-bundle. Local gates pass: vitest, typecheck, lint, build. Remaining public actions: open PR against persona-core-dev and decide whether to close superseded PR #18."
 }

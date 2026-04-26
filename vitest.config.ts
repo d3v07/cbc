@@ -15,6 +15,7 @@ export default defineConfig({
       ["tests/lib/video/**", "happy-dom"],
     ],
     include: ["tests/**/*.test.{ts,tsx}"],
+    setupFiles: ["tests/setup.ts"],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, ".") },

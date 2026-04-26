@@ -2,9 +2,6 @@
 
 import { useEffect } from "react";
 
-// Modal pack — shared primitives. Agent 4 fills the implementation; other
-// modal agents (Download, StartOver, ShareTrace) import the typed surface.
-
 export interface StampMarkProps {
   label?: string;
   size?: number;
@@ -75,10 +72,11 @@ export interface ModalShellProps {
   open: boolean;
   onClose: () => void;
   title: string;
+  maxWidth?: number;
   children: React.ReactNode;
 }
 
-export function ModalShell({ open, onClose, title, children }: ModalShellProps) {
+export function ModalShell({ open, onClose, title, maxWidth = 480, children }: ModalShellProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -110,7 +108,7 @@ export function ModalShell({ open, onClose, title, children }: ModalShellProps) 
       <div
         className="card"
         style={{
-          maxWidth: 480,
+          maxWidth,
           width: "90%",
           padding: 24,
           background: "var(--t-paper)",
