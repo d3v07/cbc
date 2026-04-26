@@ -3,7 +3,14 @@
 import { useEffect, useReducer } from "react";
 import { z } from "zod";
 import { EMOTIONS, type Emotion } from "@/components/mascots";
-import { FormSchema, ThemeSchema, type Form, type Theme } from "@/lib/types/session";
+import {
+  FormSchema,
+  ThemeSchema,
+  TurnSchema,
+  type Form,
+  type Theme,
+  type Turn,
+} from "@/lib/types/session";
 
 export const STEPS_TUPLE = [
   "moment",
@@ -44,6 +51,11 @@ export interface AppState {
   emotion: Emotion;
   modal: ModalKind;
   draft: DraftSession;
+  // session_id ties Turn.session_id to a stable id across the flow. Empty
+  // string means "not yet started"; the Interview screen sets it on entry
+  // if absent.
+  session_id: string;
+  turns: Turn[];
 }
 
 export type Action =
@@ -53,6 +65,8 @@ export type Action =
   | { type: "set_emotion"; emotion: Emotion }
   | { type: "set_modal"; modal: ModalKind }
   | { type: "patch_draft"; patch: Partial<DraftSession> }
+  | { type: "set_session_id"; session_id: string }
+  | { type: "append_turn"; turn: Turn }
   | { type: "reset" };
 
 const STEPS: readonly Step[] = STEPS_TUPLE;
@@ -60,7 +74,8 @@ const EmotionSchema = z.enum(EMOTIONS as readonly [Emotion, ...Emotion[]]);
 
 // Persisted shape — mirrors AppState but every field is validated. Future
 // schema evolution requires bumping STORAGE_KEY (mean_it_app_state_v2 etc.)
-// or migrating in `loadInitial`.
+// or migrating in `loadInitial`. session_id and turns default so previously-
+// persisted v1 state without them still loads.
 const DraftSchema = z.object({
   recipient: z.string().default(""),
   occasion: z.string().default(""),
@@ -73,6 +88,8 @@ const PersistedSchema = z.object({
   emotion: EmotionSchema,
   modal: ModalKindSchema,
   draft: DraftSchema,
+  session_id: z.string().default(""),
+  turns: z.array(TurnSchema).default([]),
 });
 
 export const INITIAL_STATE: AppState = {
@@ -86,6 +103,8 @@ export const INITIAL_STATE: AppState = {
     form: null,
     guide_id: null,
   },
+  session_id: "",
+  turns: [],
 };
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -105,6 +124,10 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, modal: action.modal };
     case "patch_draft":
       return { ...state, draft: { ...state.draft, ...action.patch } };
+    case "set_session_id":
+      return { ...state, session_id: action.session_id };
+    case "append_turn":
+      return { ...state, turns: [...state.turns, action.turn] };
     case "reset":
       return INITIAL_STATE;
   }
@@ -155,5 +178,10 @@ export const actions = {
     type: "patch_draft",
     patch,
   }),
+  setSessionId: (session_id: string): Action => ({
+    type: "set_session_id",
+    session_id,
+  }),
+  appendTurn: (turn: Turn): Action => ({ type: "append_turn", turn }),
   reset: (): Action => ({ type: "reset" }),
 };
