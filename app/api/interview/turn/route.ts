@@ -6,6 +6,7 @@ import { anthropicForKey } from "@/lib/anthropic";
 import { keyOriginTag, readKey } from "@/lib/byo-key/server";
 import { loadBuiltInGuides } from "@/lib/guides/loader";
 import { assemblePrompt } from "@/lib/interview/assemble-prompt";
+import { runAudit } from "@/lib/interview/audit-middleware";
 import { log } from "@/lib/logger";
 import { verbatimOnly } from "@/lib/spine/validate";
 import { FormSchema, ThemeSchema } from "@/lib/types/session";
@@ -274,6 +275,42 @@ async function realResponse(
         });
 
         const finalMessage = await ms.finalMessage();
+
+        // Audit pass — runs after streaming. Log-only by default;
+        // process.env.AUDIT_BLOCK === "1" promotes to blocking. We
+        // still emit `audit_blocked` so the frontend can surface a
+        // warning even though the deltas have already streamed.
+        const assistantText = finalMessage.content
+          .filter(
+            (b): b is Extract<typeof b, { type: "text" }> => b.type === "text",
+          )
+          .map((b) => b.text)
+          .join("");
+        if (assistantText.trim().length > 0) {
+          const audit = await runAudit({
+            message: assistantText,
+            guide,
+            client,
+          });
+          if (audit.flags_tripped.length > 0) {
+            log.warn("interview.turn.audit_flagged", {
+              request_id: requestId,
+              guide_id,
+              flags: audit.flags_tripped,
+              blocked: !audit.allow,
+            });
+          }
+          if (!audit.allow) {
+            controller.enqueue(
+              sseFrame("audit_blocked", {
+                flags_tripped: audit.flags_tripped,
+                reason: audit.reason,
+              }),
+            );
+            controller.close();
+            return;
+          }
+        }
 
         // Surface validated phrases_held from any tool_use blocks.
         for (const block of finalMessage.content) {
