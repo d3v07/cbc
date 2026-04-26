@@ -18,11 +18,12 @@ export function applyImmutables(guide: Guide): Guide {
   const forbiddenSet = new Set(guide.forbidden);
   for (const item of IMMUTABLE_FORBIDDEN) forbiddenSet.add(item);
 
+  // Immutable audit flags MUST win on name collision — a tampered guide must
+  // not be able to weaken a guardrail by reusing its name with a softer
+  // description. See DESIGN.md §2.
   const flagsByName = new Map<string, AuditFlag>();
   for (const f of guide.audit_flags) flagsByName.set(f.name, f);
-  for (const f of IMMUTABLE_AUDIT_FLAGS) {
-    if (!flagsByName.has(f.name)) flagsByName.set(f.name, f);
-  }
+  for (const f of IMMUTABLE_AUDIT_FLAGS) flagsByName.set(f.name, f);
 
   return {
     ...guide,
