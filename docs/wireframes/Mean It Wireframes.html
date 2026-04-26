@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Mean It — Wireframe Exploration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Kalam:wght@300;400;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles.css"/>
+<style>
+  body { margin:0; background:#f0eee9; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  @keyframes blink { 50% { opacity:0; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="wf-primitives.jsx"></script>
+<script type="text/babel" src="wf-screens-1.jsx"></script>
+<script type="text/babel" src="wf-screens-2.jsx"></script>
+<script type="text/babel" src="wf-screens-3.jsx"></script>
+
+<script type="text/babel">
+const W = 720, H = 480;
+
+function App() {
+  return (
+    <DesignCanvas>
+
+      {/* INTRO */}
+      <DCSection id="intro" title="Mean It · wireframe exploration"
+                 subtitle="A guided writing companion. Claude asks; you write. Provenance proves every word is yours.">
+        <DCArtboard id="readme" label="00 · the thesis" width={520} height={H}>
+          <div className="wf">
+            <div className="wf-chrome">
+              <span className="wf-logo">Mean It<span style={{color:'var(--accent)'}}>.</span></span>
+              <span style={{fontFamily:'var(--mono)', fontSize:9, opacity:0.5}}>readme · v0</span>
+            </div>
+            <div className="wf-body" style={{gap:14}}>
+              <div className="wf-eyebrow">design system in this file</div>
+              <div className="wf-h scribble-under" style={{alignSelf:'flex-start'}}>Every word is yours.<br/>And we can prove it.</div>
+              <div className="wf-p">Mean It inverts "AI for creativity": Claude doesn't draft. It asks, mirrors, proposes structure, critiques cuts.</div>
+              <hr className="wf-divider"/>
+              <div className="wf-eyebrow">my honest take on the three designer ideas</div>
+              <div className="wf-card" style={{padding:10}}>
+                <div className="wf-mono" style={{fontSize:9, color:'var(--accent)'}}>① theme slider · cute ↔ gothic</div>
+                <div className="wf-p" style={{fontSize:13, margin:'2px 0 0'}}><strong>Strong fit.</strong> Maps to occasion's emotional weight; signature feature. <em>Featured.</em></div>
+              </div>
+              <div className="wf-card" style={{padding:10}}>
+                <div className="wf-mono" style={{fontSize:9, color:'var(--accent)'}}>② duolingo-style mascot</div>
+                <div className="wf-p" style={{fontSize:13, margin:'2px 0 0'}}><strong>Risky for eulogies.</strong> Shown as variation against typography-only & abstract-mark options.</div>
+              </div>
+              <div className="wf-card" style={{padding:10}}>
+                <div className="wf-mono" style={{fontSize:9, color:'var(--accent)'}}>③ visual change history</div>
+                <div className="wf-p" style={{fontSize:13, margin:'2px 0 0'}}><strong>Fits in drafting.</strong> Recast as a scrubbable timeline of <em>your</em> edits — complements the provenance trace.</div>
+              </div>
+              <hr className="wf-divider"/>
+              <div className="wf-mono" style={{fontSize:10, opacity:0.6}}>scroll right →  six screens · 2–3 directions each · then mid-fi</div>
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      {/* SCREEN 1 */}
+      <DCSection id="moment" title="01 · Pick the moment"
+                 subtitle="Recipient, occasion, form. Three takes — form-first, conversational, feeling-first.">
+        <DCArtboard id="m-a" label="A · form-first" width={W} height={H}><PickMoment_A/></DCArtboard>
+        <DCArtboard id="m-b" label="B · conversational parse" width={W} height={H}><PickMoment_B/></DCArtboard>
+        <DCArtboard id="m-c" label="C · feeling-first" width={W} height={H}><PickMoment_C/></DCArtboard>
+      </DCSection>
+
+      {/* SCREEN 2 */}
+      <DCSection id="guide" title="02 · Guide picker"
+                 subtitle="The mascot question, side-by-side. A = typography only. B = full mascot. C = abstract glyph (compromise).">
+        <DCArtboard id="g-a" label="A · typography only" width={W} height={H}><GuidePicker_A/></DCArtboard>
+        <DCArtboard id="g-b" label="B · mascot (Duolingo-style)" width={W} height={H}><GuidePicker_B/></DCArtboard>
+        <DCArtboard id="g-c" label="C · abstract glyph" width={W} height={H}><GuidePicker_C/></DCArtboard>
+      </DCSection>
+
+      {/* SCREEN 3 */}
+      <DCSection id="interview" title="03 · Interview"
+                 subtitle="Split-screen direction (your pick). Three structural takes within it.">
+        <DCArtboard id="i-a" label="A · classic split" width={W} height={H}><Interview_A/></DCArtboard>
+        <DCArtboard id="i-b" label="B · chat + holding pane" width={W} height={H}><Interview_B/></DCArtboard>
+        <DCArtboard id="i-c" label="C · one-question focus" width={W} height={H}><Interview_C/></DCArtboard>
+      </DCSection>
+
+      {/* SCREEN 4 */}
+      <DCSection id="spine" title="04 · Spine + structure"
+                 subtitle="Your verbatim phrases. Pick one. Guide proposes structure; you decide how to fill it.">
+        <DCArtboard id="s-a" label="spine selection" width={W} height={H}><SpineScreen/></DCArtboard>
+      </DCSection>
+
+      {/* SCREEN 5 */}
+      <DCSection id="draft" title="05 · Drafting"
+                 subtitle="Three drafting models — streaming critique, scrubbable timeline (your designer's idea), single-shot critique fallback.">
+        <DCArtboard id="d-a" label="A · streaming critique" width={W} height={H}><Drafting_A/></DCArtboard>
+        <DCArtboard id="d-b" label="B · drafting timeline" width={W} height={H}><Drafting_B/></DCArtboard>
+        <DCArtboard id="d-c" label="C · single critique" width={W} height={H}><Drafting_C/></DCArtboard>
+      </DCSection>
+
+      {/* SCREEN 6 */}
+      <DCSection id="render" title="06 · Render + provenance trace"
+                 subtitle="The artifact, full-bleed, beautiful. Trace is hover-only — discovery, not noise.">
+        <DCArtboard id="r-a" label="render · trace on hover" width={W} height={H}><Render_A/></DCArtboard>
+      </DCSection>
+
+      {/* THEME SPECTRUM */}
+      <DCSection id="theme" title="07 · Theme spectrum (the slider, treated seriously)"
+                 subtitle="A single user-controlled spectrum. Same words; the page shifts its weight. Guide tone shifts too.">
+        <DCArtboard id="t-1" label="cute ↔ gothic · slider + 5 readings" width={W} height={H}><ThemeSpectrum/></DCArtboard>
+      </DCSection>
+
+      {/* CREATE / SHARE */}
+      <DCSection id="byo" title="08 · Create your own guide + share import"
+                 subtitle="Symmetrical interview to build a guide.md. Share via URL-encoded payload; guardrails re-applied on import.">
+        <DCArtboard id="byo-a" label="create-your-own-guide" width={W} height={H}><CreateGuide_A/></DCArtboard>
+        <DCArtboard id="byo-b" label="share-link import" width={W} height={H}><ShareImport/></DCArtboard>
+      </DCSection>
+
+      {/* MID-FI */}
+      <DCSection id="midfi" title="09 · Mid-fi pass on the chosen direction"
+                 subtitle="Typography-first guide language · serif body · single warm accent · interview = split (B), render = full-bleed.">
+        <DCArtboard id="mf-i" label="mid-fi · interview" width={W} height={H}><MidFi_Interview/></DCArtboard>
+        <DCArtboard id="mf-r" label="mid-fi · render" width={W} height={H}><MidFi_Render/></DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
