@@ -148,6 +148,12 @@ export function Render() {
         }}
       >
         <button
+          className="btn primary sm"
+          onClick={() => dispatch(actions.setStep("reel"))}
+        >
+          make it move
+        </button>
+        <button
           className="btn ghost sm"
           onClick={() => dispatch(actions.setModal("download"))}
         >

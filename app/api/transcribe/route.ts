@@ -44,12 +44,15 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(result);
   } catch (err) {
-    const status = (err as { status?: number })?.status ?? 502;
+    const typed = err as { status?: number; message?: string };
+    const status = typed?.status ?? 502;
+    const message =
+      typed?.status && err instanceof Error ? err.message : "transcribe failed";
     log.error("transcribe.failed", {
       request_id: requestId,
       status,
       error: err instanceof Error ? err.message : String(err),
     });
-    return NextResponse.json({ error: "transcribe failed" }, { status });
+    return NextResponse.json({ error: message }, { status });
   }
 }

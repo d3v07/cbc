@@ -48,12 +48,14 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    const status = (err as { status?: number })?.status ?? 502;
+    const typed = err as { status?: number; message?: string };
+    const status = typed?.status ?? 502;
+    const message = typed?.status && err instanceof Error ? err.message : "tts failed";
     log.error("tts.failed", {
       request_id: requestId,
       status,
       error: err instanceof Error ? err.message : String(err),
     });
-    return NextResponse.json({ error: "tts failed" }, { status });
+    return NextResponse.json({ error: message }, { status });
   }
 }

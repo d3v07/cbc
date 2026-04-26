@@ -16,6 +16,7 @@ describe("reducer", () => {
       "spine",
       "drafting",
       "render",
+      "reel",
     ] as const;
     let state = INITIAL_STATE;
     for (let i = 1; i < order.length; i++) {
@@ -24,9 +25,15 @@ describe("reducer", () => {
     }
   });
 
-  it("next_step wraps from render back to moment", () => {
+  it("next_step advances from render to reel", () => {
     const onRender = { ...INITIAL_STATE, step: "render" as const };
     const wrapped = reducer(onRender, actions.nextStep());
+    expect(wrapped.step).toBe("reel");
+  });
+
+  it("next_step wraps from reel back to moment", () => {
+    const onReel = { ...INITIAL_STATE, step: "reel" as const };
+    const wrapped = reducer(onReel, actions.nextStep());
     expect(wrapped.step).toBe("moment");
   });
 
