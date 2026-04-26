@@ -17,12 +17,17 @@ const CLICHE_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
   { pattern: /will be missed/i, reason: '"will be missed" is passive — it lets the writer off the hook. who specifically is missing what?' },
 ];
 
+// `draft.max(5000)` caps the input so the O(n²) longestSharedRun helper
+// can't be weaponized as a CPU saturation vector on this unauthenticated
+// stub. Real critic in #9 uses Sonnet 4.6 — same cap will apply on the
+// upstream payload. `turns.max` mirrors that intent for the user-turn corpus.
 const Body = z.object({
-  draft: z.string().min(1),
+  draft: z.string().min(1).max(5000),
   turns: z
-    .array(z.object({ id: z.string(), role: z.string(), text: z.string() }))
+    .array(z.object({ id: z.string(), role: z.string(), text: z.string().max(2000) }))
+    .max(40)
     .default([]),
-  guide_id: z.string().min(1),
+  guide_id: z.string().regex(/^[A-Za-z0-9_-]{3,64}$/, "guide_id must be 3-64 chars [A-Za-z0-9_-]"),
   theme: z.enum(["cute", "warm", "quiet", "noir", "gothic"]).optional(),
 });
 
@@ -92,7 +97,9 @@ function buildCannedCritique(
     .filter((t) => t.role === "user")
     .map((t) => t.text)
     .join(" ");
-  const verbatim = longestSharedRun(draft, userText, 12);
+  // 6 words ≈ a poem line; tuned for stub-mode noise vs signal. Real
+  // provenance matcher in #9 uses edit-distance, not a hard word floor.
+  const verbatim = longestSharedRun(draft, userText, 6);
   if (verbatim) {
     cards.push({
       kind: "verified",

@@ -26,10 +26,12 @@ const SCRIPT: ReadonlyArray<{ question: string; meta?: string }> = [
   { question: "What didn't you get to say?" },
 ];
 
+const GUIDE_ID = z.string().regex(/^[A-Za-z0-9_-]{3,64}$/, "guide_id must be 3-64 chars [A-Za-z0-9_-]");
+
 const Body = z.object({
-  guide_id: z.string().min(1),
+  guide_id: GUIDE_ID,
   turn_index: z.number().int().min(0).default(0),
-  user_text: z.string().optional(),
+  user_text: z.string().max(8000).optional(),
   theme: z.enum(["cute", "warm", "quiet", "noir", "gothic"]).optional(),
 });
 
