@@ -10,6 +10,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    environmentMatchGlobs: [
+      ["tests/components/**", "happy-dom"],
+      ["tests/lib/video/**", "happy-dom"],
+    ],
     include: ["tests/**/*.test.{ts,tsx}"],
   },
   resolve: {

@@ -22,7 +22,10 @@ export interface TranscribeResult {
 export async function transcribeAudio(audio: Blob): Promise<TranscribeResult> {
   const apiKey = env().OPENAI_API_KEY;
   if (!apiKey) {
-    throw Object.assign(new Error("OPENAI_API_KEY not configured"), { status: 503 });
+    throw Object.assign(
+      new Error("Voice transcript unavailable: OpenAI API key not configured."),
+      { status: 503 },
+    );
   }
 
   const form = new FormData();

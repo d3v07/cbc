@@ -4,11 +4,12 @@
     "current_session_id": null,
     "current_session_start": null,
     "last_checkpoint": null,
-    "last_checkpoint_feature": null
+    "last_checkpoint_feature": null,
+    "cycle": "issue-27"
   },
   "completed_features": [],
   "in_progress": null,
-  "current_sprint": 1,
+  "current_group": "s2",
   "context_stats": {
     "turns_this_session": 0,
     "turns_since_checkpoint": 0,
@@ -16,5 +17,5 @@
     "approx_tokens_used": 0
   },
   "blockers": [],
-  "notes": "Initialized 2026-04-26. 4 sprints, 12 features, 3 parallel tracks. Sprint gate: all three tracks finish before any track advances."
+  "notes": "Reinitialized 2026-04-26 for issue #27. 12 features grouped s2/s3/s4/modals. Sprint gate is per-PR — merge each before starting the next."
 }

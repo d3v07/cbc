@@ -27,7 +27,10 @@ const MIME_BY_FORMAT: Record<TtsFormat, string> = {
 export async function synthesizeSpeech(text: string, opts: TtsOptions = {}): Promise<TtsResult> {
   const apiKey = env().OPENAI_API_KEY;
   if (!apiKey) {
-    throw Object.assign(new Error("OPENAI_API_KEY not configured"), { status: 503 });
+    throw Object.assign(
+      new Error("Voice synthesis unavailable: OpenAI API key not configured."),
+      { status: 503 },
+    );
   }
   if (!text.trim()) {
     throw Object.assign(new Error("text is empty"), { status: 400 });
