@@ -1,29 +1,99 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getKey } from "@/lib/byo-key";
 import type {
   DemoSpineCandidate,
   DemoStructureMovement,
 } from "@/lib/demo";
+import { SCRIPT } from "@/lib/demo";
 import { actions, useAppStore } from "@/lib/store";
+import type { Turn } from "@/lib/types/session";
 
 interface SpineResponse {
   candidates: DemoSpineCandidate[];
   structure: DemoStructureMovement[];
 }
 
+function normalizePhrase(phrase: string): string {
+  return phrase.replace(/\s+/g, " ").trim();
+}
+
+function heldPhrasesFromTurns(turns: Turn[]): string[] {
+  const held: string[] = [];
+
+  for (const turn of turns) {
+    if (turn.role !== "user") continue;
+    for (const raw of turn.phrases_held ?? []) {
+      const phrase = normalizePhrase(raw);
+      if (!phrase || held.includes(phrase)) continue;
+      held.push(phrase);
+    }
+  }
+
+  return held.slice(-3);
+}
+
+function candidatesFromHeldPhrases(turns: Turn[]): DemoSpineCandidate[] {
+  const userTurns = turns.filter((turn) => turn.role === "user");
+  return heldPhrasesFromTurns(turns).map((phrase, index) => {
+    const source =
+      userTurns.find((turn) => turn.text.includes(phrase)) ??
+      userTurns.find((turn) => turn.phrases_held?.includes(phrase));
+    const answerIndex = source
+      ? userTurns.findIndex((turn) => turn.id === source.id) + 1
+      : index + 1;
+
+    return {
+      text: phrase,
+      source_turn_id: source?.id ?? `held-${index}`,
+      source_label: `answer ${String(answerIndex).padStart(2, "0")}`,
+    };
+  });
+}
+
 export function Spine() {
-  const [, dispatch] = useAppStore();
-  const [data, setData] = useState<SpineResponse | null>(null);
+  const [state, dispatch] = useAppStore();
+  const { draft, theme, turns } = state;
+  const heldCandidates = useMemo(
+    () => candidatesFromHeldPhrases(turns),
+    [turns],
+  );
+  const [data, setData] = useState<SpineResponse | null>(() =>
+    heldCandidates.length > 0
+      ? { candidates: heldCandidates, structure: SCRIPT.structure }
+      : null,
+  );
   const [pickIdx, setPickIdx] = useState(0);
+  const [addedWords, setAddedWords] = useState("");
 
   useEffect(() => {
     dispatch(actions.setEmotion("moved"));
   }, [dispatch]);
 
   useEffect(() => {
+    if (heldCandidates.length === 0) return;
+    setData({ candidates: heldCandidates, structure: SCRIPT.structure });
+    setPickIdx((idx) => Math.min(idx, heldCandidates.length - 1));
+  }, [heldCandidates]);
+
+  useEffect(() => {
+    if (heldCandidates.length > 0) return;
     let cancelled = false;
-    fetch("/api/spine", { method: "POST" })
+    const byoKey = getKey();
+    fetch("/api/spine", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(byoKey ? { "X-Anthropic-Key": byoKey } : {}),
+      },
+      body: JSON.stringify({
+        guide_id: draft.guide_id ?? undefined,
+        form: draft.form ?? undefined,
+        turns,
+        theme,
+      }),
+    })
       .then((r) => r.json())
       .then((d: SpineResponse) => {
         if (!cancelled) setData(d);
@@ -34,7 +104,7 @@ export function Spine() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [draft.form, draft.guide_id, heldCandidates.length, theme, turns]);
 
   if (!data) {
     return (
@@ -50,6 +120,14 @@ export function Spine() {
   }
 
   const { candidates, structure } = data;
+  const selectedPhrase = candidates[pickIdx]?.text ?? "";
+  const draftSeed = [selectedPhrase, addedWords.trim()]
+    .filter(Boolean)
+    .join("\n\n");
+  const startWriting = () => {
+    if (draftSeed) dispatch(actions.setArtifactText(draftSeed));
+    dispatch(actions.nextStep());
+  };
 
   return (
     <div className="stage">
@@ -76,7 +154,7 @@ export function Spine() {
       >
         {candidates.map((c, i) => (
           <button
-            key={c.source_turn_id}
+            key={`${c.source_turn_id}-${c.text}`}
             onClick={() => setPickIdx(i)}
             className={"card " + (pickIdx === i ? "selected" : "outlined")}
             style={{
@@ -126,6 +204,18 @@ export function Spine() {
       <div className="divider-flourish" />
 
       <div className="eyebrow" style={{ marginBottom: 12 }}>
+        add your words around the spine
+      </div>
+      <textarea
+        className="textarea-prose ruled"
+        rows={5}
+        value={addedWords}
+        onChange={(event) => setAddedWords(event.target.value)}
+        placeholder="add the words you want to carry into drafting."
+        style={{ fontSize: 18, minHeight: 150, marginBottom: 28 }}
+      />
+
+      <div className="eyebrow" style={{ marginBottom: 12 }}>
         structure the guide proposes — three movements
       </div>
       <div
@@ -135,7 +225,9 @@ export function Spine() {
           gap: 14,
         }}
       >
-        {structure.map((s) => (
+        {structure.map((s, index) => {
+          const phrase = candidates[index]?.text;
+          return (
           <div
             key={s.label}
             className="card outlined"
@@ -166,18 +258,21 @@ export function Spine() {
                 padding: "14px 12px",
                 border: "1px dashed var(--t-ink-faint)",
                 borderRadius: "var(--t-radius)",
-                fontFamily: "var(--t-mono)",
-                fontSize: 10,
-                color: "var(--t-ink-faint)",
-                textAlign: "center",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
+                fontFamily: phrase ? "var(--t-display)" : "var(--t-mono)",
+                fontSize: phrase ? 18 : 10,
+                color: phrase ? "var(--t-ink)" : "var(--t-ink-faint)",
+                textAlign: phrase ? "left" : "center",
+                letterSpacing: phrase ? 0 : "0.1em",
+                textTransform: phrase ? "none" : "uppercase",
+                fontStyle: phrase ? "italic" : "normal",
+                lineHeight: 1.25,
               }}
             >
-              your words · go here
+              {phrase ? `“${phrase}”` : "your words · go here"}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div
@@ -196,7 +291,7 @@ export function Spine() {
         </span>
         <button
           className="btn primary"
-          onClick={() => dispatch(actions.nextStep())}
+          onClick={startWriting}
         >
           start writing →
         </button>

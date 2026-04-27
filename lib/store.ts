@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, createElement, useContext, useEffect, useReducer, type ReactNode } from "react";
+import { createContext, createElement, useContext, useEffect, useReducer, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { EMOTIONS, type Emotion } from "@/components/mascots";
 import {
@@ -70,9 +70,11 @@ export type Action =
   | { type: "set_emotion"; emotion: Emotion }
   | { type: "set_modal"; modal: ModalKind }
   | { type: "patch_draft"; patch: Partial<DraftSession> }
+  | { type: "start_session"; draft: DraftSession }
   | { type: "set_session_id"; session_id: string }
   | { type: "append_turn"; turn: Turn }
   | { type: "set_artifact_text"; text: string }
+  | { type: "hydrate"; state: AppState }
   | { type: "reset" };
 
 const STEPS: readonly Step[] = STEPS_TUPLE;
@@ -132,18 +134,30 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, modal: action.modal };
     case "patch_draft":
       return { ...state, draft: { ...state.draft, ...action.patch } };
+    case "start_session":
+      return {
+        ...state,
+        step: "guide",
+        modal: null,
+        draft: action.draft,
+        session_id: "",
+        turns: [],
+        artifact_text: "",
+      };
     case "set_session_id":
       return { ...state, session_id: action.session_id };
     case "append_turn":
       return { ...state, turns: [...state.turns, action.turn] };
     case "set_artifact_text":
       return { ...state, artifact_text: action.text };
+    case "hydrate":
+      return action.state;
     case "reset":
       return INITIAL_STATE;
   }
 }
 
-const STORAGE_KEY = "mean_it_app_state_v1";
+export const STORAGE_KEY = "mean_it_app_state_v2";
 type StoreTuple = readonly [AppState, React.Dispatch<Action>];
 const AppStoreContext = createContext<StoreTuple | null>(null);
 
@@ -160,22 +174,38 @@ function loadInitial(): AppState {
       window.localStorage.removeItem(STORAGE_KEY);
       return INITIAL_STATE;
     }
-    return result.data;
+    return {
+      ...result.data,
+      step: "moment",
+      emotion: "listening",
+      modal: null,
+      session_id: "",
+      turns: [],
+      artifact_text: "",
+    };
   } catch {
     return INITIAL_STATE;
   }
 }
 
 function useAppStoreReducer() {
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE, loadInitial);
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
+    dispatch({ type: "hydrate", state: loadInitial() });
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
     if (typeof window === "undefined") return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       // localStorage full or unavailable — drop silently.
     }
-  }, [state]);
+  }, [ready, state]);
   return [state, dispatch] as const;
 }
 
@@ -202,6 +232,10 @@ export const actions = {
   patchDraft: (patch: Partial<DraftSession>): Action => ({
     type: "patch_draft",
     patch,
+  }),
+  startSession: (draft: DraftSession): Action => ({
+    type: "start_session",
+    draft,
   }),
   setSessionId: (session_id: string): Action => ({
     type: "set_session_id",

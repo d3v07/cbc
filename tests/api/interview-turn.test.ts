@@ -1,5 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/interview/turn/route";
+
+const originalFetch = globalThis.fetch;
+const originalOpenAIKey = process.env.OPENAI_API_KEY;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+  if (originalOpenAIKey === undefined) {
+    delete process.env.OPENAI_API_KEY;
+  } else {
+    process.env.OPENAI_API_KEY = originalOpenAIKey;
+  }
+});
 
 function jsonRequest(body: unknown, headers: Record<string, string> = {}): Request {
   return new Request("http://localhost/api/interview/turn", {
@@ -59,16 +71,16 @@ describe("POST /api/interview/turn (stub)", () => {
     expect(body.turn_index).toBeGreaterThan(0);
   });
 
-  it("extracts up to 2 mid-length sentences from user_text into phrases_held", async () => {
+  it("extracts up to 3 mid-length sentences from user_text into phrases_held", async () => {
     const userText =
-      "Her hands smelled of garlic. She always answered the phone the same way. Hi.";
+      "Her hands smelled of garlic. She always answered the phone the same way. The kitchen radio stayed on. Hi.";
     const res = await POST(
       jsonRequest({ guide_id: "poet", turn_index: 1, user_text: userText }) as never,
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { phrases_held: string[] };
     expect(body.phrases_held.length).toBeGreaterThan(0);
-    expect(body.phrases_held.length).toBeLessThanOrEqual(2);
+    expect(body.phrases_held.length).toBeLessThanOrEqual(3);
     // 1-word fragments ("Hi.") must not be surfaced.
     expect(body.phrases_held.some((p) => p.split(" ").length < 3)).toBe(false);
   });
@@ -77,6 +89,57 @@ describe("POST /api/interview/turn (stub)", () => {
     const res = await POST(jsonRequest({ guide_id: "poet", turn_index: 0 }) as never);
     const body = (await res.json()) as { phrases_held: string[] };
     expect(body.phrases_held).toEqual([]);
+  });
+
+  it("uses OPENAI_API_KEY for canonical interview fallback", async () => {
+    process.env.OPENAI_API_KEY = "sk-openai-test";
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  question: "What did she say next?",
+                  meta: null,
+                  phrases_held: ["she said pronto", "invented phrase"],
+                }),
+              },
+            },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+        }),
+        { headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const res = await POST(
+      jsonRequest({
+        session: { recipient: "Tomas", occasion: "birthday", form: "letter" },
+        guide_id: "documentarian",
+        turns: [
+          { id: "g1", role: "guide", text: "What did she say?" },
+          {
+            id: "u1",
+            role: "user",
+            text: "Yes, she said pronto when answering the phone.",
+          },
+        ],
+        theme: "quiet",
+      }) as never,
+    );
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      provider: string;
+      question: string;
+      phrases_held: string[];
+    };
+    expect(body.provider).toBe("openai");
+    expect(body.question).toBe("What did she say next?");
+    expect(body.phrases_held).toEqual(["she said pronto"]);
   });
 
   it("reads X-Anthropic-Key without leaking it back to the response", async () => {

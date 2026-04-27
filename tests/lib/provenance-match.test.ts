@@ -47,6 +47,23 @@ describe("matchProvenance", () => {
     expect(result.provenance[0]!.match).toBe("none");
   });
 
+  it("credits exact user phrases inside longer artifact lines", () => {
+    const turns = [
+      userTurn(
+        "u1",
+        'She always answered my calls with "report from the field?" like I was sending dispatches from school.',
+      ),
+    ];
+    const result = matchProvenance(
+      'You answered my calls with "report from the field?" and my smallest updates mattered.',
+      turns,
+    );
+
+    expect(result.provenance[0]!.match).toBe("fuzzy");
+    expect(result.provenance[0]!.source_turn_id).toBe("u1");
+    expect(result.byline_pct).toBeGreaterThan(0);
+  });
+
   it("preserves blank lines as 'none' without affecting byline_pct", () => {
     const turns = [userTurn("u1", "Hello world")];
     const result = matchProvenance("Hello world\n\nHello world", turns);

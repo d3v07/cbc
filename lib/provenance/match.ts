@@ -42,12 +42,12 @@ export function matchProvenance(
       continue;
     }
 
-    const wordCount = line.split(/\s+/).filter(Boolean).length;
+    const wordCount = wordsForMatch(line).length;
     totalWords += wordCount;
 
     let matched: ProvenanceLine | null = null;
     for (const turn of userTurns) {
-      if (turn.text.includes(line)) {
+      if (normalizedText(turn.text).includes(normalizedText(line))) {
         matched = {
           line: rawLine,
           source_turn_id: turn.id,
@@ -72,9 +72,23 @@ export function matchProvenance(
       }
     }
 
+    let partialVerifiedWords = 0;
+    if (!matched) {
+      const partial = bestPartialRun(line, userTurns);
+      if (partial) {
+        partialVerifiedWords = partial.wordCount;
+        matched = {
+          line: rawLine,
+          source_turn_id: partial.turn.id,
+          source_text: partial.turn.text,
+          match: "fuzzy",
+        };
+      }
+    }
+
     if (matched) {
       provenance.push(matched);
-      verifiedWords += wordCount;
+      verifiedWords += partialVerifiedWords || wordCount;
     } else {
       provenance.push({
         line: rawLine,
@@ -91,13 +105,62 @@ export function matchProvenance(
   return { provenance, byline_pct };
 }
 
+function normalizedText(text: string): string {
+  return wordsForMatch(text).join(" ");
+}
+
+function wordsForMatch(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .split(/\s+/)
+    .map((word) => word.replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, ""))
+    .filter(Boolean);
+}
+
+function bestPartialRun(
+  line: string,
+  turns: ReadonlyArray<Turn>,
+): { turn: Turn; wordCount: number } | null {
+  const lineWords = wordsForMatch(line);
+  let best: { turn: Turn; wordCount: number } | null = null;
+
+  for (const turn of turns) {
+    const turnWords = wordsForMatch(turn.text);
+    const run = longestCommonRun(lineWords, turnWords);
+    if (run >= 3 && (!best || run > best.wordCount)) {
+      best = { turn, wordCount: run };
+    }
+  }
+
+  return best;
+}
+
+function longestCommonRun(a: string[], b: string[]): number {
+  let best = 0;
+  let prev = new Array<number>(b.length + 1).fill(0);
+  let curr = new Array<number>(b.length + 1).fill(0);
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      curr[j] = a[i - 1] === b[j - 1] ? prev[j - 1]! + 1 : 0;
+      if (curr[j]! > best) best = curr[j]!;
+    }
+    [prev, curr] = [curr, prev];
+    curr.fill(0);
+  }
+
+  return best;
+}
+
 /**
  * True when `haystack` contains a window of words that approximately
  * matches `needle` — each word within 2 Levenshtein edits.
  */
 function fuzzyContains(needle: string, haystack: string): boolean {
-  const needleWords = needle.split(/\s+/).filter(Boolean);
-  const hayWords = haystack.split(/\s+/).filter(Boolean);
+  const needleWords = wordsForMatch(needle);
+  const hayWords = wordsForMatch(haystack);
   if (needleWords.length === 0 || hayWords.length === 0) return false;
   if (needleWords.length > hayWords.length) return false;
 

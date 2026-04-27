@@ -1,10 +1,19 @@
 "use client";
 
-import { useAppStore } from "@/lib/store";
+import { actions, type Step, useAppStore } from "@/lib/store";
 import { ThemeSlider } from "./ThemeSlider";
 
+const CORE_STEPS: Array<{ step: Step; label: string }> = [
+  { step: "moment", label: "Moment" },
+  { step: "guide", label: "Guide" },
+  { step: "interview", label: "Interview" },
+  { step: "spine", label: "Spine" },
+  { step: "drafting", label: "Drafting" },
+  { step: "render", label: "Render" },
+];
+
 export function Chrome() {
-  const [{ step }] = useAppStore();
+  const [{ step }, dispatch] = useAppStore();
 
   return (
     <header className="chrome">
@@ -13,16 +22,21 @@ export function Chrome() {
           Mean It<span className="logo-dot" />
         </div>
         <div className="crumbs">
-          <span className={`crumb ${step === "moment" ? "now" : "muted"}`}>Start</span>
-          <span className="muted">/</span>
-          <span className={`crumb ${step === "guide" ? "now" : "muted"}`}>Guide</span>
-          <span className="muted">/</span>
-          <span className={`crumb ${["interview", "spine", "drafting", "render"].includes(step) ? "now" : "muted"}`}>Draft</span>
-          <span className="muted">/</span>
-          <span className={`crumb ${step === "reel" ? "now" : "muted"}`}>Reel</span>
+          {CORE_STEPS.map((item, index) => (
+            <span key={item.step} className="inline-flex items-center gap-2">
+              {index > 0 && <span className="muted">/</span>}
+              <button
+                type="button"
+                className={`crumb ${step === item.step ? "now" : "muted"}`}
+                onClick={() => dispatch(actions.setStep(item.step))}
+              >
+                {item.label}
+              </button>
+            </span>
+          ))}
         </div>
       </div>
-      
+
       <div className="right">
         <ThemeSlider />
         <div className="byline">

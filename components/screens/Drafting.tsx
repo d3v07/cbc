@@ -13,11 +13,25 @@ export function Drafting() {
   const [isStreaming, setIsStreaming] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelRef = useRef<AbortController | null>(null);
+  const lastArtifactTextRef = useRef(artifact_text);
+
+  useEffect(() => {
+    if (artifact_text === lastArtifactTextRef.current) return;
+    lastArtifactTextRef.current = artifact_text;
+    setDraftText((current) => (current.trim() ? current : artifact_text));
+  }, [artifact_text]);
 
   // Sync local edits up to the store so Render can pick them up.
   useEffect(() => {
     dispatch(actions.setArtifactText(draftText));
   }, [draftText, dispatch]);
+
+  const goToRender = () => {
+    const text = draftText.trim();
+    if (!text) return;
+    dispatch(actions.setArtifactText(text));
+    dispatch(actions.setStep("render"));
+  };
 
   const fetchCritique = useCallback(
     async (text: string) => {
@@ -137,6 +151,7 @@ export function Drafting() {
   }
 
   const wordCount = draftText.split(/\s+/).filter(Boolean).length;
+  const canRender = draftText.trim().length > 0;
 
   return (
     <div className="stage" style={{ maxWidth: 1180 }}>
@@ -187,10 +202,10 @@ export function Drafting() {
           >
             <button
               className="btn primary"
-              onClick={() => dispatch(actions.setStep("render"))}
-              disabled={draftText.trim().length < 20}
+              onClick={goToRender}
+              disabled={!canRender}
               style={{
-                opacity: draftText.trim().length < 20 ? 0.4 : 1,
+                opacity: canRender ? 1 : 0.4,
               }}
             >
               render the artifact →

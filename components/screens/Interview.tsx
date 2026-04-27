@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MASCOTS, Mascot, type MascotId } from "@/components/mascots";
 import { getKey } from "@/lib/byo-key";
 import { actions, useAppStore } from "@/lib/store";
@@ -14,25 +14,72 @@ function mascotForGuide(guide_id: string | null): MascotId | null {
   return null;
 }
 
+const MAX_GUIDE_QUESTIONS = 8;
+
+function normalizePhrase(phrase: string): string {
+  return phrase.replace(/\s+/g, " ").trim();
+}
+
+function mergeHeldPhrases(existing: string[], incoming: string[]): string[] {
+  const merged: string[] = [];
+
+  for (const raw of [...existing, ...incoming]) {
+    const phrase = normalizePhrase(raw);
+    if (!phrase || merged.includes(phrase)) continue;
+    merged.push(phrase);
+  }
+
+  return merged.slice(-3);
+}
+
+function heldPhrasesFromTurns(turns: Turn[]): string[] {
+  return turns.reduce<string[]>((held, turn) => {
+    if (turn.role !== "user") return held;
+    return mergeHeldPhrases(held, turn.phrases_held ?? []);
+  }, []);
+}
+
+function fallbackHeldPhrases(text: string): string[] {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return [];
+
+  const clauses = cleaned
+    .split(/(?:[.!?;]\s+|,\s+)/)
+    .map(normalizePhrase)
+    .filter(Boolean);
+  const exactClauses = clauses.filter((phrase) => {
+    const wc = phrase.split(" ").length;
+    return wc >= 3 && wc <= 14;
+  });
+  if (exactClauses.length >= 3) return exactClauses.slice(0, 3);
+
+  const words = cleaned.split(" ").filter(Boolean);
+  const windows: string[] = [];
+  for (let i = 0; i < words.length && windows.length < 3; i += 6) {
+    const phrase = words.slice(i, i + 6).join(" ");
+    if (phrase.split(" ").length >= 3) windows.push(phrase);
+  }
+
+  return mergeHeldPhrases(exactClauses, windows);
+}
+
 export function Interview() {
   const [state, dispatch] = useAppStore();
   const { draft, theme, session_id, turns, emotion } = state;
   const mascotId = mascotForGuide(draft.guide_id);
+  const persistedHeldPhrases = useMemo(
+    () => heldPhrasesFromTurns(turns),
+    [turns],
+  );
 
   const [streamingText, setStreamingText] = useState("");
-  const [phrasesHeld, setPhrasesHeld] = useState<string[]>([]);
+  const [phrasesHeld, setPhrasesHeld] = useState<string[]>(
+    () => persistedHeldPhrases,
+  );
   const [userInput, setUserInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
-
-  // Ensure a session_id exists before any turn is recorded — Turn.session_id
-  // is required by the canonical schema.
-  useEffect(() => {
-    if (!session_id) {
-      dispatch(actions.setSessionId(crypto.randomUUID()));
-    }
-  }, [session_id, dispatch]);
 
   const runTurn = useCallback(
     async (extraUserTurn?: Turn) => {
@@ -45,12 +92,30 @@ export function Interview() {
         setError("Pick the moment + a guide before continuing.");
         return;
       }
+      const guideTurnsSoFar = turns.filter((t) => t.role === "guide").length;
+      if (guideTurnsSoFar >= MAX_GUIDE_QUESTIONS) {
+        setError("8 questions reached. Move to the spine when you're ready.");
+        return;
+      }
+
+      const sid = session_id || extraUserTurn?.session_id || crypto.randomUUID();
+      if (!session_id) dispatch(actions.setSessionId(sid));
+      const normalizedUserTurn = extraUserTurn
+        ? { ...extraUserTurn, session_id: sid }
+        : undefined;
+
       setIsStreaming(true);
       setStreamingText("");
-      setPhrasesHeld([]);
+      let nextHeldPhrases = mergeHeldPhrases(
+        heldPhrasesFromTurns(turns),
+        normalizedUserTurn ? fallbackHeldPhrases(normalizedUserTurn.text) : [],
+      );
+      setPhrasesHeld(nextHeldPhrases);
       setError(null);
 
-      const turnsToSend = extraUserTurn ? [...turns, extraUserTurn] : turns;
+      const turnsToSend = normalizedUserTurn
+        ? [...turns, normalizedUserTurn]
+        : turns;
       let assistantText = "";
 
       try {
@@ -92,8 +157,12 @@ export function Interview() {
           };
           assistantText = json.question ?? "";
           if (json.meta) assistantText += `\n\n— ${json.meta}`;
+          nextHeldPhrases = mergeHeldPhrases(
+            nextHeldPhrases,
+            json.phrases_held ?? [],
+          );
           setStreamingText(assistantText);
-          setPhrasesHeld(json.phrases_held ?? []);
+          setPhrasesHeld(nextHeldPhrases);
         } else {
           // Real SSE path
           const reader = res.body?.getReader();
@@ -129,7 +198,8 @@ export function Interview() {
                   setStreamingText(assistantText);
                 } else if (event === "phrases_held") {
                   const { phrases } = JSON.parse(data) as { phrases: string[] };
-                  setPhrasesHeld(phrases);
+                  nextHeldPhrases = mergeHeldPhrases(nextHeldPhrases, phrases);
+                  setPhrasesHeld(nextHeldPhrases);
                 } else if (event === "error") {
                   const { message } = JSON.parse(data) as { message: string };
                   setError(message);
@@ -144,9 +214,13 @@ export function Interview() {
 
         // Persist the turn pair on success.
         const ts = Date.now();
-        const sid = session_id || crypto.randomUUID();
-        if (extraUserTurn) {
-          dispatch(actions.appendTurn(extraUserTurn));
+        if (normalizedUserTurn) {
+          dispatch(
+            actions.appendTurn({
+              ...normalizedUserTurn,
+              phrases_held: nextHeldPhrases,
+            }),
+          );
         }
         dispatch(
           actions.appendTurn({
@@ -179,9 +253,21 @@ export function Interview() {
     }
   }, [turns, draft.guide_id, runTurn]);
 
+  useEffect(() => {
+    if (!isStreaming) setPhrasesHeld(persistedHeldPhrases);
+  }, [persistedHeldPhrases, isStreaming]);
+
+  const guideTurnCount = turns.filter((t) => t.role === "guide").length;
+  const userTurnCount = turns.filter((t) => t.role === "user").length;
+  const atQuestionLimit = guideTurnCount >= MAX_GUIDE_QUESTIONS;
+
   const onSubmit = () => {
     const text = userInput.trim();
     if (!text || isStreaming) return;
+    if (atQuestionLimit) {
+      setError("8 questions reached. Move to the spine when you're ready.");
+      return;
+    }
     const sid = session_id || crypto.randomUUID();
     const userTurn: Turn = {
       id: `u-${Date.now()}`,
@@ -211,9 +297,10 @@ export function Interview() {
       </div>
     );
   }
-
-  const guideTurnCount = turns.filter((t) => t.role === "guide").length;
-  const userTurnCount = turns.filter((t) => t.role === "user").length;
+  const sendDisabled = !userInput.trim() || isStreaming || atQuestionLimit;
+  const visibleHeldPhrases =
+    phrasesHeld.length > 0 ? phrasesHeld : persistedHeldPhrases;
+  const canFindSpine = turns.length >= 2 || visibleHeldPhrases.length > 0;
 
   return (
     <div className="stage" style={{ maxWidth: 1180 }}>
@@ -230,7 +317,7 @@ export function Interview() {
           className="muted"
           style={{ fontFamily: "var(--t-mono)", fontSize: 10 }}
         >
-          {guideTurnCount} questions · {userTurnCount} answers
+          {guideTurnCount}/{MAX_GUIDE_QUESTIONS} questions · {userTurnCount} answers
         </span>
       </div>
 
@@ -276,7 +363,7 @@ export function Interview() {
             )}
           </div>
 
-          {phrasesHeld.length > 0 && (
+          {visibleHeldPhrases.length > 0 && (
             <div
               className="card"
               style={{
@@ -287,7 +374,7 @@ export function Interview() {
               }}
             >
               <div className="eyebrow" style={{ color: "var(--t-accent)" }}>
-                holding · from your turn
+                holding · {visibleHeldPhrases.length}/3 from your turn
               </div>
               <ul
                 style={{
@@ -296,7 +383,7 @@ export function Interview() {
                   margin: "8px 0 0",
                 }}
               >
-                {phrasesHeld.map((p) => (
+                {visibleHeldPhrases.map((p) => (
                   <li
                     key={p}
                     className="serif-italic"
@@ -327,7 +414,7 @@ export function Interview() {
             rows={7}
             placeholder="something specific. one detail is enough."
             style={{ fontSize: 19, minHeight: 200 }}
-            disabled={isStreaming}
+            disabled={isStreaming || atQuestionLimit}
           />
           <div
             style={{
@@ -341,26 +428,28 @@ export function Interview() {
               className="muted"
               style={{ fontFamily: "var(--t-mono)", fontSize: 10 }}
             >
-              {userInput.split(/\s+/).filter(Boolean).length} words · all yours
+              {atQuestionLimit
+                ? "8 questions reached · ready for spine"
+                : `${userInput.split(/\s+/).filter(Boolean).length} words · all yours`}
             </span>
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 className="btn ghost sm"
                 onClick={() => dispatch(actions.setStep("spine"))}
-                disabled={turns.length < 2}
-                style={{ opacity: turns.length < 2 ? 0.4 : 1 }}
+                disabled={!canFindSpine}
+                style={{ opacity: canFindSpine ? 1 : 0.4 }}
               >
                 find the spine →
               </button>
               <button
                 className="btn primary"
                 onClick={onSubmit}
-                disabled={!userInput.trim() || isStreaming}
+                disabled={sendDisabled}
                 style={{
-                  opacity: !userInput.trim() || isStreaming ? 0.4 : 1,
+                  opacity: sendDisabled ? 0.4 : 1,
                 }}
               >
-                {isStreaming ? "listening…" : "send →"}
+                {atQuestionLimit ? "limit reached" : isStreaming ? "listening…" : "send →"}
               </button>
             </div>
           </div>

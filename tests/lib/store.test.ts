@@ -67,6 +67,50 @@ describe("reducer", () => {
     expect(r2.draft.occasion).toBe("eulogy");
   });
 
+  it("start_session starts from guide with a clean interview session", () => {
+    const dirtyTurn: Turn = {
+      id: "g1",
+      session_id: "old-session",
+      role: "guide",
+      text: "Old question?",
+      ts: 1,
+    };
+    const dirty = {
+      ...INITIAL_STATE,
+      step: "render" as const,
+      session_id: "old-session",
+      turns: [dirtyTurn],
+      artifact_text: "Old draft",
+      draft: {
+        recipient: "Old recipient",
+        occasion: "Old occasion",
+        form: "letter" as const,
+        guide_id: "documentarian",
+      },
+    };
+
+    const next = reducer(
+      dirty,
+      actions.startSession({
+        recipient: "Tomas",
+        occasion: "birthday",
+        form: "poem",
+        guide_id: null,
+      }),
+    );
+
+    expect(next.step).toBe("guide");
+    expect(next.draft).toEqual({
+      recipient: "Tomas",
+      occasion: "birthday",
+      form: "poem",
+      guide_id: null,
+    });
+    expect(next.session_id).toBe("");
+    expect(next.turns).toEqual([]);
+    expect(next.artifact_text).toBe("");
+  });
+
   it("reset returns to the initial state", () => {
     const dirty = reducer(INITIAL_STATE, actions.setStep("render"));
     const dirtier = reducer(dirty, actions.setTheme("gothic"));

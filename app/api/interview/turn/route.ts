@@ -55,6 +55,16 @@ type LegacyBody = z.infer<typeof Legacy>;
 
 // ─────────── Stub fallback ───────────
 
+const MAX_GUIDE_QUESTIONS = 8;
+const OPENAI_CHAT_COMPLETIONS_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+const OPENAI_INTERVIEW_MODEL = "gpt-4o-mini";
+
+const OpenAIInterviewSchema = z.object({
+  question: z.string().min(1),
+  meta: z.string().nullable().optional(),
+  phrases_held: z.array(z.string()).max(3).default([]),
+});
+
 const STUB_SCRIPT: ReadonlyArray<{ question: string; meta?: string }> = [
   {
     question: "What's a smell that means home, when you think of her?",
@@ -67,6 +77,9 @@ const STUB_SCRIPT: ReadonlyArray<{ question: string; meta?: string }> = [
   },
   { question: "What hands do you remember? How did they hold things?" },
   { question: "What didn't you get to say?" },
+  { question: "What is one scene you keep replaying, even if it feels small?" },
+  { question: "What would they recognize immediately as yours?" },
+  { question: "What should the piece leave the reader carrying?" },
 ];
 
 function stubExtractCandidatePhrases(text: string): string[] {
@@ -78,7 +91,7 @@ function stubExtractCandidatePhrases(text: string): string[] {
       const wc = s.split(" ").length;
       return wc >= 3 && wc <= 12;
     })
-    .slice(0, 2);
+    .slice(0, 3);
 }
 
 // ─────────── Memoized guide load ───────────
@@ -106,6 +119,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
   const keyOrigin = keyOriginTag(req);
   const key = readKey(req);
+  const openAIKey = readOpenAIKey();
 
   let raw: unknown;
   try {
@@ -120,22 +134,31 @@ export async function POST(req: NextRequest): Promise<Response> {
   const canonical = Canonical.safeParse(raw);
   const legacy = Legacy.safeParse(raw);
 
-  // Stub mode: no key, OR caller used the legacy (non-canonical) shape.
-  // Both keep dev DX with no API key required.
-  if (keyOrigin === "missing" || !key || !canonical.success) {
-    if (canonical.success) return stubResponse(requestId, keyOrigin, canonical.data);
-    if (legacy.success) return stubResponse(requestId, keyOrigin, legacy.data);
-    return NextResponse.json(
-      {
-        error: "invalid body",
-        issues: legacy.error.flatten(),
-      },
-      { status: 400 },
-    );
+  if (canonical.success) {
+    const isAnthropicByo = keyOrigin === "byo";
+    if (!isAnthropicByo && openAIKey) {
+      return openAIResponse(requestId, canonical.data, openAIKey);
+    }
+    if (key) {
+      return realResponse(requestId, keyOrigin === "missing" ? "env" : keyOrigin, canonical.data, key);
+    }
+    return stubResponse(requestId, keyOrigin, canonical.data);
   }
 
-  // Real mode: canonical shape + a real key (BYO or env).
-  return realResponse(requestId, keyOrigin, canonical.data, key);
+  // Legacy callers stay on the deterministic local path.
+  if (legacy.success) return stubResponse(requestId, keyOrigin, legacy.data);
+  return NextResponse.json(
+    {
+      error: "invalid body",
+      issues: legacy.error.flatten(),
+    },
+    { status: 400 },
+  );
+}
+
+function readOpenAIKey(): string | null {
+  const trimmed = process.env.OPENAI_API_KEY?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : null;
 }
 
 // ─────────── Stub response ───────────
@@ -182,6 +205,160 @@ function stubResponse(
   });
 }
 
+// ─────────── OpenAI fallback response ───────────
+
+async function openAIResponse(
+  requestId: string,
+  body: CanonicalBody,
+  key: string,
+): Promise<Response> {
+  const { session, guide_id, turns, theme } = body;
+  const guideTurnCount = turns.filter((t) => t.role === "guide").length;
+
+  if (guideTurnCount >= MAX_GUIDE_QUESTIONS) {
+    return NextResponse.json(
+      { error: "interview question limit reached" },
+      { status: 409 },
+    );
+  }
+
+  const guide = getBuiltInGuides().find((g) => g.id === guide_id);
+  if (!guide) {
+    return NextResponse.json(
+      { error: `unknown guide_id: ${guide_id}` },
+      { status: 404 },
+    );
+  }
+
+  const systemPrompt = assemblePrompt({
+    guide,
+    recipient: session.recipient,
+    occasion: session.occasion,
+    form: session.form,
+    theme,
+  });
+
+  const userTurnsText = turns
+    .filter((t) => t.role === "user")
+    .map((t) => t.text);
+  const lastUserText = userTurnsText.at(-1);
+
+  const messages = [
+    {
+      role: "system",
+      content: [
+        systemPrompt,
+        "Return only JSON with this shape: {\"question\":\"...\",\"meta\":null,\"phrases_held\":[]}.",
+        "question must be the next single interview question.",
+        "meta is optional short guidance for the user, or null.",
+        "phrases_held must contain 1-3 exact substrings from the user's turns, never paraphrases. Use [] when there is no user answer yet.",
+      ].join("\n\n"),
+    },
+    ...(turns.length === 0
+      ? [{ role: "user", content: "Please begin the interview." }]
+      : turns.map((t) => ({
+          role: t.role === "guide" ? "assistant" : "user",
+          content: t.text,
+        }))),
+  ];
+
+  log.info("interview.turn.openai.start", {
+    request_id: requestId,
+    guide_id,
+    theme: theme ?? "warm",
+    turn_count: turns.length,
+    key_origin: "openai_env",
+  });
+
+  const res = await fetch(OPENAI_CHAT_COMPLETIONS_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: OPENAI_INTERVIEW_MODEL,
+      messages,
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 700,
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    log.error("interview.turn.openai.failed", {
+      request_id: requestId,
+      status: res.status,
+      error: detail.slice(0, 200),
+    });
+    return NextResponse.json(
+      { error: `OpenAI interview failed (${res.status})` },
+      { status: res.status },
+    );
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string | null } }>;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+  };
+  const content = data.choices?.[0]?.message?.content ?? "";
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(content);
+  } catch {
+    log.error("interview.turn.openai.invalid_json", {
+      request_id: requestId,
+      content: content.slice(0, 200),
+    });
+    return NextResponse.json(
+      { error: "OpenAI interview returned invalid JSON" },
+      { status: 502 },
+    );
+  }
+
+  const parsed = OpenAIInterviewSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    log.error("interview.turn.openai.invalid_shape", {
+      request_id: requestId,
+      issues: parsed.error.flatten(),
+    });
+    return NextResponse.json(
+      { error: "OpenAI interview returned invalid shape" },
+      { status: 502 },
+    );
+  }
+
+  const validated = verbatimOnly(parsed.data.phrases_held, userTurnsText);
+  const phrasesHeld =
+    validated.ok.length > 0
+      ? validated.ok.slice(0, 3)
+      : lastUserText
+        ? stubExtractCandidatePhrases(lastUserText)
+        : [];
+
+  if (data.usage) {
+    log.info("interview.turn.openai.usage", {
+      request_id: requestId,
+      input_tokens: data.usage.prompt_tokens ?? 0,
+      output_tokens: data.usage.completion_tokens ?? 0,
+      total_tokens: data.usage.total_tokens ?? 0,
+    });
+  }
+
+  return NextResponse.json({
+    provider: "openai",
+    model: OPENAI_INTERVIEW_MODEL,
+    question: parsed.data.question,
+    meta: parsed.data.meta ?? null,
+    phrases_held: phrasesHeld,
+  });
+}
+
 // ─────────── Real (Sonnet 4.6) response ───────────
 
 async function realResponse(
@@ -191,6 +368,14 @@ async function realResponse(
   key: string,
 ): Promise<Response> {
   const { session, guide_id, turns, theme } = body;
+  const guideTurnCount = turns.filter((t) => t.role === "guide").length;
+
+  if (guideTurnCount >= MAX_GUIDE_QUESTIONS) {
+    return NextResponse.json(
+      { error: "interview question limit reached" },
+      { status: 409 },
+    );
+  }
 
   const guide = getBuiltInGuides().find((g) => g.id === guide_id);
   if (!guide) {

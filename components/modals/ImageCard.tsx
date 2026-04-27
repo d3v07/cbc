@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { SCRIPT } from "@/lib/demo";
 import { actions, useAppStore } from "@/lib/store";
@@ -7,6 +8,7 @@ import { ModalShell, StampMark } from "@/components/modals/shared";
 
 type ImageFormat = "1x1" | "4x5" | "9x16" | "16x9" | "letter";
 type ImageLayout = "paper" | "hero" | "photo" | "carousel";
+type ApiImageFormat = "square" | "portrait" | "landscape";
 
 interface FormatOption {
   id: ImageFormat;
@@ -20,6 +22,14 @@ interface LayoutOption {
   id: ImageLayout;
   name: string;
   sub: string;
+}
+
+interface GeneratedImage {
+  image_url: string;
+  mime: string;
+  model: string;
+  format: ApiImageFormat;
+  layout: ImageLayout;
 }
 
 const FORMATS: readonly FormatOption[] = [
@@ -39,14 +49,25 @@ const LAYOUTS: readonly LayoutOption[] = [
 ];
 const DEFAULT_LAYOUT = LAYOUTS[0]!;
 
-function svgDataUrl(format: FormatOption, layout: ImageLayout): string {
-  const verifiedLines = SCRIPT.draft.filter((line) => line.verified);
+function apiFormatFor(format: ImageFormat): ApiImageFormat {
+  if (format === "16x9") return "landscape";
+  if (format === "4x5" || format === "9x16" || format === "letter") {
+    return "portrait";
+  }
+  return "square";
+}
+
+function svgDataUrl(
+  format: FormatOption,
+  layout: ImageLayout,
+  lines: readonly string[],
+): string {
   const line =
     layout === "hero"
-      ? "the world is wide and the kitchen is small."
+      ? lines[0] ?? ""
       : layout === "photo"
-        ? "I tune the dial the same way now."
-        : verifiedLines[0]?.text ?? SCRIPT.draft[0]?.text ?? "";
+        ? lines[1] ?? lines[0] ?? ""
+        : lines[0] ?? "";
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${Math.round(1200 / format.ratio)}" viewBox="0 0 1200 ${Math.round(1200 / format.ratio)}"><rect width="100%" height="100%" fill="#f5ecd9"/><circle cx="1080" cy="120" r="72" fill="none" stroke="#8b2418" stroke-width="8"/><text x="1080" y="132" text-anchor="middle" font-family="serif" font-size="28" fill="#8b2418">100%</text><text x="600" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="serif" font-size="64" fill="#1d150c">${line.replace(/[<&>]/g, "")}</text></svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
@@ -56,11 +77,23 @@ export default function ImageCard() {
   const [format, setFormat] = useState<ImageFormat>("1x1");
   const [layout, setLayout] = useState<ImageLayout>("hero");
   const [done, setDone] = useState(false);
+  const [generated, setGenerated] = useState<GeneratedImage | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const open = state.modal === "imagecard";
   const dismiss = () => dispatch(actions.setModal(null));
   const selectedFormat = FORMATS.find((item) => item.id === format) ?? DEFAULT_FORMAT;
   const selectedLayout = LAYOUTS.find((item) => item.id === layout) ?? DEFAULT_LAYOUT;
+  const lines = useMemo(() => {
+    const artifactLines = state.artifact_text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (artifactLines.length > 0) return artifactLines;
+    return SCRIPT.draft.filter((line) => line.verified).map((line) => line.text);
+  }, [state.artifact_text]);
+  const artifact = lines.join("\n").trim();
 
   const preview = useMemo(() => {
     const width = selectedFormat.ratio >= 1 ? 260 : 260 * selectedFormat.ratio;
@@ -68,15 +101,55 @@ export default function ImageCard() {
     return { width, height };
   }, [selectedFormat]);
 
-  const download = () => {
+  const resetGenerated = () => {
+    setGenerated(null);
+    setDone(false);
+    setError(null);
+  };
+
+  const downloadLocal = () => {
     if (typeof document === "undefined") return;
     const link = document.createElement("a");
-    link.href = svgDataUrl(selectedFormat, layout);
+    link.href = svgDataUrl(selectedFormat, layout, lines);
     link.download = `mean-it-${format}-${layout}.svg`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     setDone(true);
+  };
+
+  const generate = async () => {
+    if (!artifact) return;
+    setGenerating(true);
+    setError(null);
+    setDone(false);
+    try {
+      const res = await fetch("/api/image-card/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          artifact,
+          recipient: state.draft.recipient || undefined,
+          occasion: state.draft.occasion || undefined,
+          theme: state.theme,
+          format: apiFormatFor(format),
+          layout,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as
+        | GeneratedImage
+        | { error?: string };
+      if (!res.ok || !("image_url" in data)) {
+        const message = "error" in data ? data.error : undefined;
+        throw new Error(message ?? "image generation failed");
+      }
+      setGenerated(data);
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "image generation failed");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -106,7 +179,10 @@ export default function ImageCard() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setFormat(item.id)}
+                onClick={() => {
+                  setFormat(item.id);
+                  resetGenerated();
+                }}
                 className={`card ${format === item.id ? "selected" : "outlined"}`}
                 style={{
                   cursor: "pointer",
@@ -138,7 +214,10 @@ export default function ImageCard() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setLayout(item.id)}
+                onClick={() => {
+                  setLayout(item.id);
+                  resetGenerated();
+                }}
                 className={`card ${layout === item.id ? "selected" : "outlined"}`}
                 style={{ cursor: "pointer", padding: "12px 14px", textAlign: "left", fontFamily: "inherit", color: "inherit" }}
               >
@@ -176,51 +255,69 @@ export default function ImageCard() {
               borderRadius: "var(--t-radius)",
             }}
           >
-            <div
-              data-testid="image-card-preview"
-              data-format={format}
-              data-layout={layout}
-              style={{
-                width: preview.width,
-                height: preview.height,
-                background:
-                  layout === "photo"
-                    ? "linear-gradient(155deg, color-mix(in srgb, var(--t-accent) 60%, var(--t-paper)), color-mix(in srgb, var(--t-ink-soft) 60%, var(--t-paper-warm)))"
-                    : "var(--t-paper)",
-                borderRadius: layout === "paper" ? 1 : 4,
-                position: "relative",
-                overflow: "hidden",
-                boxShadow: "0 8px 24px var(--t-paper-shadow), inset 0 1px 0 var(--t-paper-highlight)",
-                border: layout === "paper" ? "1px solid var(--t-ink-ghost)" : "none",
-                fontFamily: "var(--t-body)",
-                color: layout === "photo" ? "var(--t-paper)" : "var(--t-ink)",
-              }}
-            >
-              <div style={{ position: "absolute", top: 8, right: 8, transform: "rotate(8deg)" }}>
-                <StampMark label="100%" size={40} />
-              </div>
-              <div
+            {generated ? (
+              <Image
+                alt="Generated image card"
+                data-testid="image-card-generated"
+                height={Math.round(preview.height)}
+                src={generated.image_url}
+                unoptimized
+                width={Math.round(preview.width)}
                 style={{
-                  padding: 18,
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  textAlign: "center",
+                  width: preview.width,
+                  height: preview.height,
+                  objectFit: "cover",
+                  border: "1px solid var(--t-ink-ghost)",
+                  boxShadow: "0 8px 24px var(--t-paper-shadow)",
+                }}
+              />
+            ) : (
+              <div
+                data-testid="image-card-preview"
+                data-format={format}
+                data-layout={layout}
+                style={{
+                  width: preview.width,
+                  height: preview.height,
+                  background:
+                    layout === "photo"
+                      ? "linear-gradient(155deg, color-mix(in srgb, var(--t-accent) 60%, var(--t-paper)), color-mix(in srgb, var(--t-ink-soft) 60%, var(--t-paper-warm)))"
+                      : "var(--t-paper)",
+                  borderRadius: layout === "paper" ? 1 : 4,
+                  position: "relative",
+                  overflow: "hidden",
+                  boxShadow: "0 8px 24px var(--t-paper-shadow), inset 0 1px 0 var(--t-paper-highlight)",
+                  border: layout === "paper" ? "1px solid var(--t-ink-ghost)" : "none",
+                  fontFamily: "var(--t-body)",
+                  color: layout === "photo" ? "var(--t-paper)" : "var(--t-ink)",
                 }}
               >
-                <div className="eyebrow" style={{ fontSize: 6, marginBottom: 8 }}>
-                  {selectedLayout.name}
+                <div style={{ position: "absolute", top: 8, right: 8, transform: "rotate(8deg)" }}>
+                  <StampMark label="100%" size={40} />
                 </div>
-                <div style={{ fontFamily: "var(--t-display)", fontStyle: "italic", fontSize: 18, lineHeight: 1.15 }}>
-                  {layout === "carousel"
-                    ? SCRIPT.draft.filter((line) => line.verified)[0]?.text
-                    : layout === "photo"
-                      ? "I tune the dial the same way now."
-                      : "the world is wide and the kitchen is small."}
+                <div
+                  style={{
+                    padding: 18,
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    textAlign: "center",
+                  }}
+                >
+                  <div className="eyebrow" style={{ fontSize: 6, marginBottom: 8 }}>
+                    {selectedLayout.name}
+                  </div>
+                  <div style={{ fontFamily: "var(--t-display)", fontStyle: "italic", fontSize: 18, lineHeight: 1.15 }}>
+                    {layout === "carousel"
+                      ? lines[0]
+                      : layout === "photo"
+                        ? lines[1] ?? lines[0]
+                        : lines[0]}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -229,12 +326,40 @@ export default function ImageCard() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <span className="muted" style={{ fontFamily: "var(--t-mono)", fontSize: 10 }}>
-          rendered locally · trace badge always on
+          generated from this letter · trace badge stays visible
         </span>
-        <button type="button" className="btn primary" onClick={download}>
-          download {format} image
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button type="button" className="btn ghost" onClick={downloadLocal}>
+            local svg
+          </button>
+          {generated && (
+            <a
+              className="btn ghost"
+              download={`mean-it-${format}-${layout}.png`}
+              href={generated.image_url}
+            >
+              download png
+            </a>
+          )}
+          <button
+            type="button"
+            className="btn primary"
+            disabled={generating || !artifact}
+            onClick={generate}
+          >
+            {generating ? "generating" : generated ? "regenerate image" : `generate ${format} image`}
+          </button>
+        </div>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          style={{ marginTop: 14, fontFamily: "var(--t-mono)", fontSize: 11, color: "var(--t-accent)" }}
+        >
+          {error}
+        </div>
+      )}
 
       {done && (
         <div

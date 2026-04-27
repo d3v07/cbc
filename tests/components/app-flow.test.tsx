@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { App } from "@/components/App";
-import { INITIAL_STATE, type AppState } from "@/lib/store";
-
-const STORAGE_KEY = "mean_it_app_state_v1";
+import { INITIAL_STATE, STORAGE_KEY, type AppState } from "@/lib/store";
 
 const seedState = (overrides: Partial<AppState> = {}): void => {
   const state: AppState = { ...INITIAL_STATE, ...overrides };
@@ -16,15 +14,17 @@ afterEach(() => {
 
 describe("App issue-27 flow", () => {
   it("advances from the rendered artifact into ReelViewer", () => {
-    seedState({ step: "render" });
+    seedState();
     render(<App guides={[]} />);
+    fireEvent.click(screen.getByRole("button", { name: /^render$/i }));
     fireEvent.click(screen.getByRole("button", { name: /make it move/i }));
     expect(screen.getByRole("heading", { name: /a reel for tomas/i })).toBeTruthy();
   });
 
   it("wires the artifact actions into the App modal switch", () => {
-    seedState({ step: "render" });
+    seedState();
     render(<App guides={[]} />);
+    fireEvent.click(screen.getByRole("button", { name: /^render$/i }));
 
     fireEvent.click(screen.getByRole("button", { name: /download/i }));
     expect(screen.getByRole("dialog", { name: /download/i })).toBeTruthy();
