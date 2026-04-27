@@ -1,0 +1,325 @@
+/* Mean It — wireframe styles. Sketchy hand-drawn aesthetic. */
+
+:root {
+  --ink: #1a1612;
+  --ink-soft: #4a4038;
+  --ink-faint: rgba(26, 22, 18, 0.45);
+  --ink-ghost: rgba(26, 22, 18, 0.18);
+  --paper: #f6f1e8;
+  --paper-card: #fbf7ef;
+  --accent: #c4533a; /* warm terracotta — single accent */
+  --accent-soft: rgba(196, 83, 58, 0.12);
+  --highlight: #f5e36b; /* eulogy/poet highlight */
+  --verified: #6b8a4f;
+  --verified-soft: rgba(107, 138, 79, 0.18);
+  --flag: #c4533a;
+  --hand: 'Caveat', 'Kalam', 'Comic Sans MS', cursive;
+  --hand-body: 'Kalam', 'Caveat', cursive;
+  --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* ─────── wireframe primitives ─────── */
+
+.wf {
+  background: var(--paper-card);
+  width: 100%;
+  height: 100%;
+  font-family: var(--hand);
+  color: var(--ink);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.wf-rough {
+  /* sketchy double-stroke border */
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 1.5px 1.5px 0 0 var(--ink);
+}
+
+.wf-rough-soft {
+  border: 1.25px dashed var(--ink-faint);
+  border-radius: 6px;
+}
+
+.wf-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1.5px solid var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  background: var(--paper);
+}
+
+.wf-chrome .wf-logo {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.wf-chrome .wf-byline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  opacity: 0.6;
+}
+
+.wf-chrome .wf-byline-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--verified);
+}
+
+.wf-body {
+  flex: 1;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.wf-h {
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.wf-h2 {
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.wf-eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.wf-p {
+  font-family: var(--hand-body);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.wf-mono {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper-card);
+  font-family: var(--hand);
+  font-size: 16px;
+  color: var(--ink);
+  box-shadow: 1.5px 1.5px 0 0 var(--ink);
+  cursor: pointer;
+}
+
+.wf-btn-primary {
+  background: var(--accent);
+  color: #fff8ee;
+}
+
+.wf-btn-ghost {
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+}
+
+.wf-input {
+  border: 1.25px solid var(--ink);
+  border-radius: 3px;
+  padding: 8px 10px;
+  background: #fffdf8;
+  font-family: var(--hand-body);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.wf-input-stroke {
+  border: none;
+  border-bottom: 1.5px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 2px;
+  font-family: var(--hand-body);
+  font-size: 16px;
+}
+
+/* placeholder boxes */
+.wf-ph {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    rgba(26, 22, 18, 0.06) 6px 7px
+  );
+  border: 1.25px dashed var(--ink-faint);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 8px;
+  text-align: center;
+}
+
+.wf-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  background: var(--paper);
+}
+
+.wf-tag-accent {
+  background: var(--accent);
+  color: #fff8ee;
+  border-color: var(--accent);
+}
+
+/* annotation arrow + note */
+.wf-annot {
+  position: absolute;
+  font-family: var(--hand);
+  font-size: 13px;
+  color: var(--accent);
+  line-height: 1.2;
+  max-width: 140px;
+  pointer-events: none;
+  z-index: 5;
+}
+.wf-annot svg { display: block; }
+
+/* card */
+.wf-card {
+  background: var(--paper-card);
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  padding: 12px;
+  box-shadow: 1.5px 1.5px 0 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-card-soft {
+  border: 1.25px dashed var(--ink-faint);
+  box-shadow: none;
+  background: transparent;
+}
+
+/* divider */
+.wf-divider {
+  border: none;
+  border-top: 1.25px dashed var(--ink-faint);
+  margin: 6px 0;
+}
+
+/* mascot — abstract blob */
+.wf-mascot {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ─── theme spectrum colors ─── */
+.theme-cute    { --t-bg:#fef0f3; --t-ink:#5a3a48; --t-accent:#e88aa3; }
+.theme-warm    { --t-bg:#f6f1e8; --t-ink:#1a1612; --t-accent:#c4533a; }
+.theme-quiet   { --t-bg:#f1f1ee; --t-ink:#2a2a26; --t-accent:#6b8a4f; }
+.theme-noir    { --t-bg:#1a1814; --t-ink:#e8e3d8; --t-accent:#a89058; }
+.theme-gothic  { --t-bg:#16131a; --t-ink:#d8d3e0; --t-accent:#7a6b8f; }
+
+/* highlight pen */
+.wf-highlight {
+  background: linear-gradient(transparent 55%, var(--highlight) 55% 92%, transparent 92%);
+  padding: 0 2px;
+}
+
+/* trace underline (for render screen) */
+.wf-trace-line {
+  position: relative;
+  cursor: help;
+}
+.wf-trace-line::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 1px;
+  background: var(--verified);
+  opacity: 0.35;
+}
+
+/* sketchy underline used for headings */
+.scribble-under {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8'><path d='M2 5 Q 18 1, 35 4 T 70 4 T 98 5' stroke='%23c4533a' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-size: 100% 6px;
+  background-position: 0 100%;
+  padding-bottom: 4px;
+}
+
+/* hand-drawn arrow svg helper class */
+.arrow-stroke { stroke: var(--accent); stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* used for "this is one of the variations" note */
+.wf-note-card {
+  background: #fff8d4;
+  border: 1px solid #d4b94a;
+  padding: 8px 10px;
+  font-family: var(--hand);
+  font-size: 13px;
+  color: #5a4a2a;
+  box-shadow: 1.5px 1.5px 0 0 rgba(0,0,0,0.1);
+  border-radius: 3px;
+}
+
+/* mid-fi specific */
+.midfi {
+  font-family: var(--serif);
+  background: #faf6ec;
+}
+.midfi .wf-h { font-family: var(--serif); font-weight: 500; font-style: italic; }
+.midfi .wf-p { font-family: 'Iowan Old Style', Georgia, serif; }
+.midfi .wf-eyebrow { letter-spacing: 0.18em; }

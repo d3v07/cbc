@@ -1,0 +1,285 @@
+{
+  "features": [
+    {
+      "id": "feat-27-01-rebase-pr18",
+      "title": "Rebase components branch + merge PR #18",
+      "description": "Rebase components onto current persona-core-dev. Resolve conflicts on app/layout.tsx + app/globals.css to the design-refresh versions (next/font + letterpress tokens). Verify /dev/voice and /dev/transcode still work post-rebase. Merge PR #18.",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 2,
+      "group": "s2",
+      "issue": 27,
+      "branch": "feat/27-s2",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "components branch rebases cleanly on persona-core-dev",
+        "app/layout.tsx + app/globals.css resolved to design-refresh versions",
+        "/dev/voice + /dev/transcode load 200 with COEP headers intact",
+        "PR #18 merged into persona-core-dev"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "feat-27-02-photo-reader-cache",
+      "title": "Verify Photo Reader system-prompt cache + PhotoMeta typing",
+      "description": "Confirm lib/images/photoReader.ts has cache_control: ephemeral on system prompt. Verify route returns PhotoMeta-shaped objects per @/lib/types/session#PhotoMetaSchema.",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 2,
+      "group": "s2",
+      "issue": 27,
+      "branch": "feat/27-s2",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "cache_control: ephemeral on assembled system prompt",
+        "Route response shape matches PhotoMetaSchema",
+        "Live smoke logs cache_read_input_tokens > 0 on second call"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "feat-27-03-audio-startup-validation",
+      "title": "Audio routes 503 with specific copy when OPENAI_API_KEY missing",
+      "description": "/api/transcribe and /api/tts return 503 with user-facing copy ('Voice transcript unavailable: OpenAI key not configured') when missing. Avoid generic 'something went wrong'.",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 3,
+      "group": "s3",
+      "issue": 27,
+      "branch": "feat/27-s3",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "503 with specific message when key absent",
+        "Logger emits structured warning at module load if key missing",
+        "Existing tests still pass with mocked env"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "feat-27-04-curator-live",
+      "title": "Curator route confirmed live with Sonnet 4.6 + cache_control",
+      "description": "Confirm /api/curator calls real Sonnet 4.6. Add cache_control: ephemeral to assembled system prompt if missing. Output validated by StoryboardSchema.",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 4,
+      "group": "s4",
+      "issue": 27,
+      "branch": "feat/27-s4",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "cache_control: ephemeral on system prompt",
+        "Live smoke produces a Storyboard that validates against StoryboardSchema",
+        "Theme parameter measurably shifts pacing in the output"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "feat-27-05-reel-renderer",
+      "title": "ReelRenderer canvas component + ffmpeg.wasm transcode + download",
+      "description": "components/ReelRenderer.tsx renders a Storyboard on a 1080x1920 canvas at 30fps with Web Animations API for Ken Burns + caption fades. captureStream + audio merge -> WebM. ffmpeg.wasm WebM -> MP4. <a download>.",
+      "owner": "d3v07",
+      "area": "audio-video",
+      "sprint": 4,
+      "group": "s4",
+      "issue": 27,
+      "branch": "feat/27-s4",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "Component consumes Storyboard from @/lib/types/media",
+        "Captures + transcodes a 30s reel in under 15s on dev hardware",
+        "Download link produces a playable MP4",
+        "Cleanup on unmount: stream tracks stopped, AudioContext closed"
+      ],
+      "dependencies": [
+        "feat-27-01-rebase-pr18"
+      ]
+    },
+    {
+      "id": "feat-27-06-reel-viewer-screen",
+      "title": "ReelViewer screen + a11y polish",
+      "description": "components/screens/ReelViewer.tsx wires the 'Make It Move' CTA from the artifact view through to ReelRenderer. Preview, retry, download. Lighthouse a11y >= 95.",
+      "owner": "d3v07",
+      "area": "frontend",
+      "sprint": 4,
+      "group": "s4",
+      "issue": 27,
+      "branch": "feat/27-s4",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "'Make It Move' CTA renders + advances to renderer state",
+        "Specific error copy on too-short clips, vendor failures, MIME mismatch",
+        "Lighthouse a11y >= 95 on /reel and / (artifact view)"
+      ],
+      "dependencies": [
+        "feat-27-05-reel-renderer"
+      ]
+    },
+    {
+      "id": "feat-27-07-modal-shared",
+      "title": "Modal pack — shared primitives (StampMark, CopyLine)",
+      "description": "components/modals/shared.tsx exports StampMark (wax-seal ornament) and CopyLine (single-line copyable string).",
+      "owner": "d3v07",
+      "area": "frontend",
+      "sprint": 0,
+      "group": "modals",
+      "issue": 27,
+      "branch": "feat/27-modals",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "StampMark renders SVG matching docs/design/hifi/modals.jsx reference",
+        "CopyLine has accessible Copy button with success state",
+        "Both exported from @/components/modals/shared"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "feat-27-08-modal-startover",
+      "title": "Modal — StartOver (demo-critical)",
+      "description": "components/modals/StartOver.tsx confirms before resetting Session via useAppStore.actions.reset.",
+      "owner": "d3v07",
+      "area": "frontend",
+      "sprint": 0,
+      "group": "modals",
+      "issue": 27,
+      "branch": "feat/27-modals",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "Closing via overlay click does NOT reset state",
+        "Confirm dispatches actions.reset",
+        "Esc key cancels"
+      ],
+      "dependencies": [
+        "feat-27-07-modal-shared"
+      ]
+    },
+    {
+      "id": "feat-27-09-modal-download",
+      "title": "Modal — Download (demo-critical)",
+      "description": "components/modals/Download.tsx — format picker (MP4 | WebM | poster image) + toggles (include captions, include byline).",
+      "owner": "d3v07",
+      "area": "frontend",
+      "sprint": 0,
+      "group": "modals",
+      "issue": 27,
+      "branch": "feat/27-modals",
+      "status": "completed",
+      "priority": "P0",
+      "acceptance_criteria": [
+        "Format picker honors current artifact availability (no MP4 button if reel not rendered)",
+        "Captions/byline toggles propagate to download",
+        "Closing the modal does NOT abort an in-flight download"
+      ],
+      "dependencies": [
+        "feat-27-07-modal-shared"
+      ]
+    },
+    {
+      "id": "feat-27-10-modal-share-trace",
+      "title": "Modal — ShareTrace",
+      "description": "components/modals/ShareTrace.tsx — 3 audience modes (verified-only / partial / full). Uses lib/share/encode when #26 lands, stub until then.",
+      "owner": "d3v07",
+      "area": "frontend",
+      "sprint": 0,
+      "group": "modals",
+      "issue": 27,
+      "branch": "feat/27-modals",
+      "status": "completed",
+      "priority": "P1",
+      "acceptance_criteria": [
+        "3 audience modes change the encoded payload shape",
+        "CopyLine surfaces the resulting URL",
+        "Stub gracefully degrades if lib/share is not yet present"
+      ],
+      "dependencies": [
+        "feat-27-07-modal-shared"
+      ]
+    },
+    {
+      "id": "feat-27-11-modal-save",
+      "title": "Modal — Save (cut line)",
+      "description": "components/modals/Save.tsx — title + privacy + share-back link. Cut line: drop if budget runs short.",
+      "owner": "d3v07",
+      "area": "frontend",
+      "sprint": 0,
+      "group": "modals",
+      "issue": 27,
+      "branch": "feat/27-modals",
+      "status": "completed",
+      "priority": "P2",
+      "acceptance_criteria": [
+        "Persists to localStorage under canonical Session key",
+        "Title is required; empty title disables Save"
+      ],
+      "dependencies": [
+        "feat-27-07-modal-shared"
+      ]
+    },
+    {
+      "id": "feat-27-12-modal-image-card",
+      "title": "Modal — ImageCard (cut line)",
+      "description": "components/modals/ImageCard.tsx — formats x layouts picker. Cut line.",
+      "owner": "d3v07",
+      "area": "frontend",
+      "sprint": 0,
+      "group": "modals",
+      "issue": 27,
+      "branch": "feat/27-modals",
+      "status": "completed",
+      "priority": "P2",
+      "acceptance_criteria": [
+        "Format options match docs/design/hifi/modals.jsx ImageCard reference",
+        "Layouts toggle live-previews a thumbnail"
+      ],
+      "dependencies": [
+        "feat-27-07-modal-shared"
+      ]
+    }
+  ],
+  "metadata": {
+    "project_name": "Mean It (cbc) — issue #27 d3v07 bundle",
+    "issue": 27,
+    "owner": "d3v07",
+    "supersedes": "Original 12-feature Sprint 1 plan (PRs #13-#25 closed prior cycle)",
+    "branch_strategy": "One PR per group (s2, s3, s4, modals) — merge each before starting the next",
+    "groups": {
+      "s2": [
+        "feat-27-01-rebase-pr18",
+        "feat-27-02-photo-reader-cache"
+      ],
+      "s3": [
+        "feat-27-03-audio-startup-validation"
+      ],
+      "s4": [
+        "feat-27-04-curator-live",
+        "feat-27-05-reel-renderer",
+        "feat-27-06-reel-viewer-screen"
+      ],
+      "modals": [
+        "feat-27-07-modal-shared",
+        "feat-27-08-modal-startover",
+        "feat-27-09-modal-download",
+        "feat-27-10-modal-share-trace",
+        "feat-27-11-modal-save",
+        "feat-27-12-modal-image-card"
+      ]
+    },
+    "cut_lines": [
+      "feat-27-11-modal-save",
+      "feat-27-12-modal-image-card"
+    ],
+    "total_features": 12,
+    "features_completed": 12,
+    "created_at": "2026-04-26T20:30:00Z",
+    "created_by": "d3v07",
+    "completed_at": "2026-04-26T21:17:00Z",
+    "notes": "Implementation complete on feat/27-bundle. PR #18 work is folded into this branch rather than merged separately. Live model smoke still requires configured external keys and real media/file IDs."
+  }
+}
