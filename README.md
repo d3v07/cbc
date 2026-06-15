@@ -37,6 +37,10 @@ Mean It is a Next.js app for human-centered writing workflows. Instead of jumpin
 |---|---|
 | ![Mean It desktop](docs/screenshots/mean-it-home-desktop.png) | Desktop home screen with full writing workspace and guidance flow entry points visible. |
 | ![Mean It mobile](docs/screenshots/mean-it-home-mobile.png) | Mobile layout version showing responsive adaptation of the writing session cards and nav flow. |
+| ![Mean It moment intake](docs/screenshots/mean-it-moment-intake.png) | Moment intake screen where the user chooses emotional intent, recipient, and artifact type. |
+| ![Mean It guide picker](docs/screenshots/mean-it-guide-picker.png) | Guide selection step with distinct writing guide personas and custom guide entry point. |
+| ![Mean It interview question](docs/screenshots/mean-it-interview-question.png) | Interview screen showing the active guide question, preserved source phrase area, and answer composer. |
+| ![Mean It interview answered](docs/screenshots/mean-it-interview-answered.png) | Answered interview state with user source material captured for later spine and provenance steps. |
 
 ## Writing Workflow
 
