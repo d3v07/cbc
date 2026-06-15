@@ -4,12 +4,10 @@ Guided writing companion that interviews the user, preserves source material, an
 
 Mean It is a Next.js app for human-centered writing workflows. Instead of jumping straight to generation, it guides the user through choosing a moment, picking a guide style, interviewing for detail, assembling a spine, rendering the final piece, and sharing a trace of how each line was grounded.
 
-![Mean It home desktop](docs/screenshots/mean-it-home-desktop.png)
-
 ## Contents
 
 - [At A Glance](#at-a-glance)
-- [Screenshots](#screenshots)
+- [Screenshot Gallery](#screenshot-gallery)
 - [Writing Workflow](#writing-workflow)
 - [Architecture](#architecture)
 - [Feature Map](#feature-map)
@@ -33,15 +31,12 @@ Mean It is a Next.js app for human-centered writing workflows. Instead of jumpin
 | Tests | Vitest suite |
 | Design docs | `DESIGN.md`, `docs/techstack.md`, wireframes and high-fidelity design files |
 
-## Screenshots
+## Screenshot Gallery
 
-### Desktop Home
-
-![Mean It desktop](docs/screenshots/mean-it-home-desktop.png)
-
-### Mobile Home
-
-![Mean It mobile](docs/screenshots/mean-it-home-mobile.png)
+| Image | Caption |
+|---|---|
+| ![Mean It desktop](docs/screenshots/mean-it-home-desktop.png) | Desktop home screen with full writing workspace and guidance flow entry points visible. |
+| ![Mean It mobile](docs/screenshots/mean-it-home-mobile.png) | Mobile layout version showing responsive adaptation of the writing session cards and nav flow. |
 
 ## Writing Workflow
 
